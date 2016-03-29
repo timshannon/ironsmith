@@ -7,7 +7,7 @@ Ironsmith is a simple continuous integration (build - > test -> release) tool.
 
 You'll setup a project which will need the following information:
 
-1. Script to pull from the repository
+1. Script to fetch from the repository
 	* Most of the time this will be a git clone call, but it can be a bash script calling an FTP or whatever
 	* Choose between polling for changes, or triggered builds
 		* Triggered builds will be triggered off of a web hook POST call
@@ -37,3 +37,6 @@ Ironsmith will take the information for the defined project above and do the fol
 8. Insert the release information and the complete log into the Bolt DB file
 
 This tool will (originally at least) have no authentication.  I plan on adding it later.
+
+
+To add a new project, add a .json file to the projects/enabled folder.  Look at the template.project.json file in the projects folder for an example.
