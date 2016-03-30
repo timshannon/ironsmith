@@ -1,3 +1,7 @@
+// Copyright 2016 Tim Shannon. All rights reserved.
+// Use of this source code is governed by the MIT license
+// that can be found in the LICENSE file.
+
 package main
 
 import (
@@ -10,8 +14,8 @@ import (
 
 //settings
 var (
-	projectDir = "./projects" // /etc/
-	dataDir    = "./data"
+	projectDir = "./projects" // /etc/ironsmith/
+	dataDir    = "./data"     // /var/ironsmith/
 	address    = "http://localhost:8026"
 	certFile   = ""
 	keyFile    = ""
@@ -37,12 +41,12 @@ func main() {
 	keyFile = cfg.String("keyFile", keyFile)
 
 	//prep dirs
-	err = os.MkdirAll(filepath.Join(projectDir, enabledProjectDir), os.ModeDir)
+	err = os.MkdirAll(filepath.Join(projectDir, enabledProjectDir), 0777)
 	if err != nil {
 		log.Fatalf("Error Creating project directory at %s: %s", projectDir, err)
 	}
 
-	err = os.MkdirAll(dataDir, os.ModeDir)
+	err = os.MkdirAll(dataDir, 0777)
 	if err != nil {
 		log.Fatalf("Error Creating project data directory at %s: %s", dataDir, err)
 	}
@@ -53,5 +57,9 @@ func main() {
 	}
 
 	//load projects
+	err = projects.load()
+	if err != nil {
+		log.Fatalf("Error loading projects: %s", err)
+	}
 	//start server
 }
