@@ -6,6 +6,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -145,6 +146,8 @@ func (p *Project) prepData() error {
 	}
 
 	//TODO: Create data store
+
+	return errors.New("TODO")
 }
 
 type projectList struct {
@@ -183,7 +186,7 @@ func (p *projectList) load() error {
 
 			err = prj.load()
 			if err != nil {
-				delete(p, files[i].Name())
+				delete(p.data, files[i].Name())
 				return err
 			}
 		}
