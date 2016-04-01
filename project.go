@@ -7,16 +7,27 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
+
+	"git.townsourced.com/ironsmith/datastore"
 )
 
 const enabledProjectDir = "enabled"
+
+//stages
+const (
+	stageLoad    = "load"
+	stageFetch   = "fetch"
+	stageBuild   = "build"
+	stageTest    = "test"
+	stageRelease = "release"
+)
 
 // Project is an ironsmith project that contains how to fetch, build, test, and release a project
 /*
@@ -43,6 +54,9 @@ type Project struct {
 
 	filename string
 	poll     time.Duration
+	ds       *datastore.Store
+	stage    string
+	version  string
 }
 
 const projectTemplateFilename = "template.project.json"
@@ -91,36 +105,55 @@ func prepTemplateProject() error {
 	return nil
 }
 
-func (p *Project) load() error {
+func (p *Project) errHandled(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	if p.ds == nil {
+		log.Printf("Error in project %s: %s", p.filename, err)
+		return true
+	}
+
+	p.ds.AddLog(p.version, p.stage, err.Error())
+
+	return true
+}
+
+func (p *Project) load() {
+
 	if p.filename == "" {
-		return fmt.Errorf("Invalid project file name")
+		p.errHandled(errors.New("Invalid project file name"))
+		return
 	}
 
 	if !projects.exists(p.filename) {
 		// project has been deleted
 		// don't continue polling
 		// TODO: Clean up Project data folder?
-		return nil
+		return
 	}
 
 	data, err := ioutil.ReadFile(filepath.Join(projectDir, enabledProjectDir, p.filename))
-	if err != nil {
-		return err
-	}
-	err = json.Unmarshal(data, p)
-	if err != nil {
-		return err
+	if p.errHandled(err) {
+		return
 	}
 
-	err = p.prepData()
-	if err != nil {
-		return err
+	if p.errHandled(json.Unmarshal(data, p)) {
+		return
 	}
+
+	p.stage = stageLoad
+
+	if p.errHandled(p.prepData()) {
+		return
+	}
+
+	//TODO: call fetch
 
 	if p.PollInterval != "" {
 		p.poll, err = time.ParseDuration(p.PollInterval)
-		if err != nil {
-			//TODO: Log pollInterval parse failure in project store
+		if p.errHandled(err) {
 			p.poll = 0
 		}
 	}
@@ -129,7 +162,6 @@ func (p *Project) load() error {
 		//start polling
 	}
 
-	return nil
 }
 
 // prepData makes sure the project's data folder and data store is created
@@ -139,15 +171,20 @@ func (p *Project) load() error {
 
 */
 func (p *Project) prepData() error {
-	var dirName = strings.TrimSuffix(p.filename, filepath.Ext(p.filename))
-	err := os.MkdirAll(filepath.Join(dataDir, dirName), 0777)
+	var name = strings.TrimSuffix(p.filename, filepath.Ext(p.filename))
+	var dir = filepath.Join(dataDir, name)
+	err := os.MkdirAll(dir, 0777)
 	if err != nil {
 		return err
 	}
 
-	//TODO: Create data store
+	p.ds, err = datastore.Open(filepath.Join(dir, name+".ironsmith"))
 
-	return errors.New("TODO")
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type projectList struct {
@@ -181,18 +218,25 @@ func (p *projectList) load() error {
 
 	for i := range files {
 		if !files[i].IsDir() && filepath.Ext(files[i].Name()) == ".json" {
-			prj := &Project{filename: files[i].Name()}
+			prj := &Project{
+				filename: files[i].Name(),
+				Name:     files[i].Name(),
+				version:  "starting up",
+				stage:    stageLoad,
+			}
 			p.data[files[i].Name()] = prj
 
-			err = prj.load()
-			if err != nil {
-				delete(p.data, files[i].Name())
-				return err
-			}
+			prj.load()
 		}
 	}
 
 	return nil
+}
+
+func (p *projectList) remove(name string) {
+	p.Lock()
+	delete(p.data, name)
+	p.Unlock()
 }
 
 func (p *projectList) exists(name string) bool {

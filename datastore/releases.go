@@ -4,7 +4,12 @@
 
 package datastore
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+
+	"github.com/boltdb/bolt"
+)
 
 type release struct {
 	When    time.Time `json:"when"`
@@ -28,15 +33,17 @@ func (ds *Store) AddRelease(version string, fileData []byte) error {
 		FileKey: fileKey,
 	}
 
-	err := ds.put(bucketReleases, key, r)
+	dsValue, err := json.Marshal(r)
 	if err != nil {
 		return err
 	}
 
-	err = ds.put(bucketFiles, fileKey, fileData)
-	if err != nil {
-		return err
-	}
+	return ds.bolt.Update(func(tx *bolt.Tx) error {
+		err = tx.Bucket([]byte(bucketReleases)).Put(key.Bytes(), dsValue)
+		if err != nil {
+			return err
+		}
 
-	return nil
+		return tx.Bucket([]byte(bucketFiles)).Put(fileKey.Bytes(), fileData)
+	})
 }

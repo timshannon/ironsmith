@@ -12,11 +12,8 @@ You'll setup a project which will need the following information:
 	* Choose between polling for changes, or triggered builds
 		* Triggered builds will be triggered off of a web hook POST call
 2. Script to build the repository
-	* Can have multiple scripts run in sequence
 3. Script to test the repository
-	* Can have multiple scripts run in sequence
 4. Script to build the release file
-	* Should create one file
 5. Path to the release file
 6. Script to set release name / version
 	* If script doesn't return a unique name, ironsmith will append a timestamp
