@@ -24,13 +24,13 @@ func (p *Project) errHandled(err error) bool {
 	}
 
 	if p.ds == nil {
-		log.Printf("Error in project %s: %s", p.id(), err)
+		log.Printf("Error in project %s: %s\n", p.id(), err)
 		return true
 	}
 	defer func() {
 		err = p.ds.Close()
 		if err != nil {
-			log.Printf("Error closing the datastore for project %s: %s", p.id(), err)
+			log.Printf("Error closing the datastore for project %s: %s\n", p.id(), err)
 		}
 		p.ds = nil
 
@@ -38,7 +38,7 @@ func (p *Project) errHandled(err error) bool {
 
 		if p.version != "" {
 			err = os.RemoveAll(p.verDir())
-			log.Printf("Error deleting the version directory project %s version %s: %s",
+			log.Printf("Error deleting the version directory project %s version %s: %s\n",
 				p.id(), p.version, err)
 
 		}

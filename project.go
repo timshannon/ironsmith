@@ -6,6 +6,7 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -27,6 +28,8 @@ const (
 	stageTest    = "test"
 	stageRelease = "release"
 )
+
+const projectFilePoll = 30 * time.Second
 
 // Project is an ironsmith project that contains how to fetch, build, test, and release a project
 /*
@@ -114,9 +117,6 @@ var projects = projectList{
 }
 
 func (p *projectList) load() error {
-	p.Lock()
-	defer p.Unlock()
-
 	dir, err := os.Open(filepath.Join(projectDir, enabledProjectDir))
 	defer func() {
 		if cerr := dir.Close(); cerr != nil && err == nil {
@@ -135,24 +135,13 @@ func (p *projectList) load() error {
 
 	for i := range files {
 		if !files[i].IsDir() && filepath.Ext(files[i].Name()) == ".json" {
-			prj := &Project{
-				filename: files[i].Name(),
-				Name:     files[i].Name(),
-				stage:    stageLoad,
-			}
-			p.data[files[i].Name()] = prj
-
-			prj.load()
+			p.add(files[i].Name())
 		}
 	}
 
-	return nil
-}
+	time.AfterFunc(projectFilePoll, startProjectLoader)
 
-func (p *projectList) remove(name string) {
-	p.Lock()
-	delete(p.data, name)
-	p.Unlock()
+	return nil
 }
 
 func (p *projectList) exists(name string) bool {
@@ -163,7 +152,73 @@ func (p *projectList) exists(name string) bool {
 	return ok
 }
 
+func (p *projectList) add(name string) {
+	p.Lock()
+	defer p.Unlock()
+
+	prj := &Project{
+		filename: name,
+		Name:     name,
+		stage:    stageLoad,
+	}
+	p.data[name] = prj
+
+	go func() {
+		prj.load()
+	}()
+}
+
+// removeMissing removes projects that are missing from the passed in list of names
+func (p *projectList) removeMissing(names []string) {
+	p.Lock()
+	defer p.Unlock()
+
+	for i := range p.data {
+		found := false
+		for k := range names {
+			if names[k] == i {
+				found = true
+			}
+		}
+		if !found {
+			delete(p.data, i)
+		}
+	}
+}
+
 // startProjectLoader polls for new projects
 func startProjectLoader() {
+	dir, err := os.Open(filepath.Join(projectDir, enabledProjectDir))
+	defer func() {
+		if cerr := dir.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
 
+	if err != nil {
+		log.Printf("Error in startProjectLoader opening the filepath %s: %s\n", dir, err)
+		return
+	}
+
+	files, err := dir.Readdir(0)
+	if err != nil {
+		log.Printf("Error in startProjectLoader reading the dir %s: %s\n", dir, err)
+		return
+	}
+
+	names := make([]string, len(files))
+
+	for i := range files {
+		if !files[i].IsDir() && filepath.Ext(files[i].Name()) == ".json" {
+			names[i] = files[i].Name()
+			if !projects.exists(files[i].Name()) {
+				projects.add(files[i].Name())
+			}
+		}
+	}
+
+	//check for removed projects
+	projects.removeMissing(names)
+
+	time.AfterFunc(projectFilePoll, startProjectLoader)
 }
