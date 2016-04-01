@@ -16,7 +16,6 @@ You'll setup a project which will need the following information:
 4. Script to build the release file
 5. Path to the release file
 6. Script to set release name / version
-	* If script doesn't return a unique name, ironsmith will append a timestamp
 
 Projects will be defined in a project.json file for now.  I may add a web interface later.
 

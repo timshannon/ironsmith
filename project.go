@@ -6,19 +6,18 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
-	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
 	"git.townsourced.com/ironsmith/datastore"
 )
 
-const enabledProjectDir = "enabled"
+const (
+	enabledProjectDir = "enabled"
+	deletedProjectDir = "deleted"
+)
 
 //stages
 const (
@@ -105,88 +104,6 @@ func prepTemplateProject() error {
 	return nil
 }
 
-func (p *Project) errHandled(err error) bool {
-	if err == nil {
-		return false
-	}
-
-	if p.ds == nil {
-		log.Printf("Error in project %s: %s", p.filename, err)
-		return true
-	}
-
-	p.ds.AddLog(p.version, p.stage, err.Error())
-
-	return true
-}
-
-func (p *Project) load() {
-
-	if p.filename == "" {
-		p.errHandled(errors.New("Invalid project file name"))
-		return
-	}
-
-	if !projects.exists(p.filename) {
-		// project has been deleted
-		// don't continue polling
-		// TODO: Clean up Project data folder?
-		return
-	}
-
-	data, err := ioutil.ReadFile(filepath.Join(projectDir, enabledProjectDir, p.filename))
-	if p.errHandled(err) {
-		return
-	}
-
-	if p.errHandled(json.Unmarshal(data, p)) {
-		return
-	}
-
-	p.stage = stageLoad
-
-	if p.errHandled(p.prepData()) {
-		return
-	}
-
-	//TODO: call fetch
-
-	if p.PollInterval != "" {
-		p.poll, err = time.ParseDuration(p.PollInterval)
-		if p.errHandled(err) {
-			p.poll = 0
-		}
-	}
-
-	if p.poll > 0 {
-		//start polling
-	}
-
-}
-
-// prepData makes sure the project's data folder and data store is created
-/*
-	folder structure
-	projectDataFolder/<project-name>/<project-version>
-
-*/
-func (p *Project) prepData() error {
-	var name = strings.TrimSuffix(p.filename, filepath.Ext(p.filename))
-	var dir = filepath.Join(dataDir, name)
-	err := os.MkdirAll(dir, 0777)
-	if err != nil {
-		return err
-	}
-
-	p.ds, err = datastore.Open(filepath.Join(dir, name+".ironsmith"))
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 type projectList struct {
 	sync.RWMutex
 	data map[string]*Project
@@ -221,7 +138,6 @@ func (p *projectList) load() error {
 			prj := &Project{
 				filename: files[i].Name(),
 				Name:     files[i].Name(),
-				version:  "starting up",
 				stage:    stageLoad,
 			}
 			p.data[files[i].Name()] = prj

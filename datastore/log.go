@@ -4,7 +4,12 @@
 
 package datastore
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+
+	"github.com/boltdb/bolt"
+)
 
 type log struct {
 	When    time.Time `json:"when"`
@@ -27,4 +32,33 @@ func (ds *Store) AddLog(version, stage, entry string) error {
 	}
 
 	return ds.put(bucketLog, key, data)
+}
+
+// LatestVersion returns the latest version for the current project
+func (ds *Store) LatestVersion() (string, error) {
+	version := ""
+
+	err := ds.bolt.View(func(tx *bolt.Tx) error {
+		c := tx.Bucket([]byte(bucketLog)).Cursor()
+
+		for k, v := c.Last(); k != nil; k, v = c.Prev() {
+			l := &log{}
+			err := json.Unmarshal(v, l)
+			if err != nil {
+				return err
+			}
+
+			if l.Version != "" {
+				version = l.Version
+				return nil
+			}
+		}
+
+		return ErrNotFound
+	})
+
+	if err != nil {
+		return "", err
+	}
+	return version, nil
 }
