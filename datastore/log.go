@@ -34,7 +34,7 @@ func (ds *Store) AddLog(version, stage, entry string) error {
 	return ds.put(bucketLog, key, data)
 }
 
-// LatestVersion returns the latest version for the current project
+// LatestVersion returns the latest version (successful or otherwise) for the current project
 func (ds *Store) LatestVersion() (string, error) {
 	version := ""
 

@@ -5,13 +5,15 @@
 package main
 
 import (
+	"crypto/sha1"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -22,6 +24,8 @@ func (p *Project) errHandled(err error) bool {
 	if err == nil {
 		return false
 	}
+
+	vlog("Error in project %s: %s\n", p.id(), err)
 
 	if p.ds == nil {
 		log.Printf("Error in project %s: %s\n", p.id(), err)
@@ -37,9 +41,11 @@ func (p *Project) errHandled(err error) bool {
 		//clean up version folder if it exists
 
 		if p.version != "" {
-			err = os.RemoveAll(p.verDir())
-			log.Printf("Error deleting the version directory project %s version %s: %s\n",
-				p.id(), p.version, err)
+			err = os.RemoveAll(p.workingDir())
+			if err != nil {
+				log.Printf("Error deleting the version directory project %s version %s: %s\n",
+					p.id(), p.version, err)
+			}
 
 		}
 	}()
@@ -64,8 +70,16 @@ func (p *Project) dir() string {
 	return filepath.Join(dataDir, p.id())
 }
 
-func (p *Project) verDir() string {
-	return filepath.Join(p.dir(), p.version)
+func (p *Project) workingDir() string {
+	if p.hash == "" {
+		panic(fmt.Sprintf("Working dir called with no version hash set for project %s", p.id()))
+	}
+
+	//It's probably overkill to use a sha1 hash to identify the build folder, when putting a simple
+	// timestamp on instead would work just fine, but I like having the working dir tied directly to the
+	// version returned by project script
+
+	return filepath.Join(p.dir(), p.hash)
 }
 
 // prepData makes sure the project's data folder and data store is created
@@ -100,6 +114,9 @@ Project life cycle:
 // call's fetch and triggers the next poll if one exists
 func (p *Project) load() {
 	p.version = ""
+	p.hash = ""
+
+	vlog("Entering %s stage for Project: %s\n", stageLoad, p.id())
 
 	if p.filename == "" {
 		p.errHandled(errors.New("Invalid project file name"))
@@ -109,8 +126,9 @@ func (p *Project) load() {
 	if !projects.exists(p.filename) {
 		// project has been deleted
 		// don't continue polling
-		// move project data to deleted folder
-		p.errHandled(os.Rename(p.dir(), filepath.Join(dataDir, deletedProjectDir, p.id())))
+		// move project data to deleted folder with a timestamp
+		p.errHandled(os.Rename(p.dir(), filepath.Join(dataDir, deletedProjectDir,
+			strconv.FormatInt(time.Now().Unix(), 10), p.id())))
 		return
 	}
 
@@ -146,23 +164,33 @@ func (p *Project) load() {
 	}
 }
 
-// fetch first runs the version script and checks the returned version against the latest version in the
-// project database. If the version hasn't changed, then it breaks out of the cycle early doing nothing
-// if the version has changed, then it runs the fetch script
+// fetch first runs the fetch script into a temporary directory
+// then it runs the version script in the temp directory to see if there is a newer version of the
+// fetched code, if there is then the temp dir is renamed to the version name
 func (p *Project) fetch() {
 	p.stage = stageFetch
-	verCmd := &exec.Cmd{
-		Path: p.Version,
-		Dir:  p.dir(),
+
+	vlog("Entering %s stage for Project: %s\n", p.stage, p.id())
+	tempDir := filepath.Join(p.dir(), strconv.FormatInt(time.Now().Unix(), 10))
+
+	if p.errHandled(os.MkdirAll(tempDir, 0777)) {
+		return
 	}
 
-	version, err := verCmd.Output()
+	//fetch project
+	fetchResult, err := runCmd(p.Fetch, tempDir)
+	if p.errHandled(err) {
+		return
+	}
+
+	// fetched succesfully, determine version
+	version, err := runCmd(p.Version, tempDir)
 
 	if p.errHandled(err) {
 		return
 	}
 
-	p.version = string(version)
+	p.version = strings.TrimSpace(string(version))
 
 	lVer, err := p.ds.LatestVersion()
 	if err != datastore.ErrNotFound && p.errHandled(err) {
@@ -170,30 +198,33 @@ func (p *Project) fetch() {
 	}
 
 	if p.version == lVer {
-		// no new build
+		// no new build clean up temp dir
+		p.errHandled(os.RemoveAll(tempDir))
+
+		vlog("No new version found for Project: %s Version: %s.\n", p.id(), p.version)
 		return
 	}
 
-	if p.errHandled(os.MkdirAll(p.verDir(), 0777)) {
+	p.hash = fmt.Sprintf("%x", sha1.Sum([]byte(p.version)))
+
+	//remove any existing data that matches version hash
+	if p.errHandled(os.RemoveAll(p.workingDir())) {
 		return
 	}
 
-	//fetch project
-	fetchCmd := &exec.Cmd{
-		Path: p.Fetch,
-		Dir:  p.verDir(),
-	}
-
-	fetchResult, err := fetchCmd.Output()
-	if p.errHandled(err) {
+	//new version move tempdir to workingDir
+	if p.errHandled(os.Rename(tempDir, p.workingDir())) {
+		// cleanup temp dir if rename failed
+		p.errHandled(os.RemoveAll(tempDir))
 		return
 	}
 
+	//log fetch results
 	if p.errHandled(p.ds.AddLog(p.stage, p.version, string(fetchResult))) {
 		return
 	}
 
-	// fetched succesfully, onto the build stage
+	// continue to build
 	p.build()
 
 }
@@ -202,13 +233,9 @@ func (p *Project) fetch() {
 // configured in the ReleaseFile section of the project file
 func (p *Project) build() {
 	p.stage = stageBuild
+	vlog("Entering %s stage for Project: %s Version: %s\n", p.stage, p.id(), p.version)
 
-	buildCmd := &exec.Cmd{
-		Path: p.Build,
-		Dir:  p.verDir(),
-	}
-
-	output, err := buildCmd.Output()
+	output, err := runCmd(p.Build, p.workingDir())
 
 	if p.errHandled(err) {
 		return
@@ -225,13 +252,9 @@ func (p *Project) build() {
 // test runs the test scripts
 func (p *Project) test() {
 	p.stage = stageTest
+	vlog("Entering %s stage for Project: %s Version: %s\n", p.stage, p.id(), p.version)
 
-	testCmd := &exec.Cmd{
-		Path: p.Test,
-		Dir:  p.verDir(),
-	}
-
-	output, err := testCmd.Output()
+	output, err := runCmd(p.Test, p.workingDir())
 
 	if p.errHandled(err) {
 		return
@@ -249,13 +272,9 @@ func (p *Project) test() {
 // release runs the release scripts and builds the release file
 func (p *Project) release() {
 	p.stage = stageRelease
+	vlog("Entering %s stage for Project: %s Version: %s\n", p.stage, p.id(), p.version)
 
-	releaseCmd := &exec.Cmd{
-		Path: p.Release,
-		Dir:  p.verDir(),
-	}
-
-	output, err := releaseCmd.Output()
+	output, err := runCmd(p.Release, p.workingDir())
 
 	if p.errHandled(err) {
 		return
@@ -266,7 +285,7 @@ func (p *Project) release() {
 	}
 
 	//get release file
-	f, err := os.Open(filepath.Join(p.verDir(), p.ReleaseFile))
+	f, err := os.Open(filepath.Join(p.workingDir(), p.ReleaseFile))
 	if p.errHandled(err) {
 		return
 	}
@@ -280,4 +299,12 @@ func (p *Project) release() {
 		return
 	}
 
+	//build successfull, remove working dir
+	p.errHandled(os.RemoveAll(p.workingDir()))
+
+	if p.errHandled(p.ds.Close()) {
+		return
+	}
+
+	vlog("Project: %s Version %s built, tested, and released successfully.\n", p.id(), p.version)
 }

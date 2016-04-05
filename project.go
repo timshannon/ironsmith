@@ -59,6 +59,7 @@ type Project struct {
 	ds       *datastore.Store
 	stage    string
 	version  string
+	hash     string
 }
 
 const projectTemplateFilename = "template.project.json"
@@ -66,12 +67,12 @@ const projectTemplateFilename = "template.project.json"
 var projectTemplate = &Project{
 	Name:    "Template Project",
 	Fetch:   "git clone root@git.townsourced.com:tshannon/ironsmith.git .",
-	Build:   "sh ./ironsmith/build.sh",
-	Test:    "sh ./ironsmith/test.sh",
-	Release: "sh ./ironsmith/release.sh",
+	Build:   "go build -o ironsmith",
+	Test:    "go test ./...",
+	Release: "tar -czf release.tar.gz ironsmith",
 	Version: "git describe --tags --long",
 
-	ReleaseFile:  `json:"./ironsmith/release.tar.gz"`,
+	ReleaseFile:  "release.tar.gz",
 	PollInterval: "15m",
 }
 
@@ -79,6 +80,7 @@ func prepTemplateProject() error {
 	filename := filepath.Join(projectDir, projectTemplateFilename)
 	_, err := os.Stat(filename)
 	if os.IsNotExist(err) {
+		vlog("Creating template project file in %s", filename)
 		f, err := os.Create(filename)
 		defer func() {
 			if cerr := f.Close(); cerr != nil && err == nil {
@@ -117,6 +119,7 @@ var projects = projectList{
 }
 
 func (p *projectList) load() error {
+	vlog("Loading projects from the enabled definitions in %s\n", filepath.Join(projectDir, enabledProjectDir))
 	dir, err := os.Open(filepath.Join(projectDir, enabledProjectDir))
 	defer func() {
 		if cerr := dir.Close(); cerr != nil && err == nil {
@@ -153,6 +156,7 @@ func (p *projectList) exists(name string) bool {
 }
 
 func (p *projectList) add(name string) {
+	vlog("Adding project %s to the project list.\n", name)
 	p.Lock()
 	defer p.Unlock()
 
@@ -181,8 +185,19 @@ func (p *projectList) removeMissing(names []string) {
 			}
 		}
 		if !found {
+			vlog("Removing project %s from the project list, because the project file was removed.\n",
+				i)
 			delete(p.data, i)
 		}
+	}
+}
+
+func (p *projectList) closeAll() {
+	p.RLock()
+	defer p.RUnlock()
+
+	for i := range p.data {
+		_ = p.data[i].ds.Close()
 	}
 }
 
@@ -196,13 +211,13 @@ func startProjectLoader() {
 	}()
 
 	if err != nil {
-		log.Printf("Error in startProjectLoader opening the filepath %s: %s\n", dir, err)
+		log.Printf("Error in startProjectLoader opening the filepath %s: %s\n", projectDir, err)
 		return
 	}
 
 	files, err := dir.Readdir(0)
 	if err != nil {
-		log.Printf("Error in startProjectLoader reading the dir %s: %s\n", dir, err)
+		log.Printf("Error in startProjectLoader reading the dir %s: %s\n", projectDir, err)
 		return
 	}
 

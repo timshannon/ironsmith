@@ -64,7 +64,7 @@ func Open(filename string) (*Store, error) {
 
 // Close closes the bolt datastore
 func (ds *Store) Close() error {
-	return ds.Close()
+	return ds.bolt.Close()
 }
 
 func (ds *Store) get(bucket string, key TimeKey, result interface{}) error {
