@@ -197,7 +197,9 @@ func (p *projectList) closeAll() {
 	defer p.RUnlock()
 
 	for i := range p.data {
-		_ = p.data[i].ds.Close()
+		if p.data[i].ds != nil {
+			_ = p.data[i].ds.Close()
+		}
 	}
 }
 

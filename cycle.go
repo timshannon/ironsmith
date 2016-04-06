@@ -32,12 +32,6 @@ func (p *Project) errHandled(err error) bool {
 		return true
 	}
 	defer func() {
-		err = p.ds.Close()
-		if err != nil {
-			log.Printf("Error closing the datastore for project %s: %s\n", p.id(), err)
-		}
-		p.ds = nil
-
 		//clean up version folder if it exists
 
 		if p.version != "" {
@@ -156,6 +150,11 @@ func (p *Project) load() {
 
 	p.fetch()
 
+	if p.errHandled(p.ds.Close()) {
+		return
+	}
+	p.ds = nil
+
 	//full cycle completed
 
 	if p.poll > 0 {
@@ -197,7 +196,7 @@ func (p *Project) fetch() {
 		return
 	}
 
-	if p.version == lVer {
+	if p.version == "" || p.version == lVer {
 		// no new build clean up temp dir
 		p.errHandled(os.RemoveAll(tempDir))
 
@@ -301,10 +300,6 @@ func (p *Project) release() {
 
 	//build successfull, remove working dir
 	p.errHandled(os.RemoveAll(p.workingDir()))
-
-	if p.errHandled(p.ds.Close()) {
-		return
-	}
 
 	vlog("Project: %s Version %s built, tested, and released successfully.\n", p.id(), p.version)
 }

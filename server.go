@@ -4,7 +4,12 @@
 
 package main
 
-import "net/http"
+import (
+	"bytes"
+	"net/http"
+	"path"
+	"time"
+)
 
 var webRoot *http.ServeMux
 
@@ -71,7 +76,47 @@ func (m *methodHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+/*
+Routes
+	/project/<project-id>/<version>/<stage>
+
+	/project/ - list all projects
+	/project/<project-id> - list all versions in a project, triggers new builds
+	/project/<project-id>/<version> - list combined output of all stages
+	/project/<project-id>/<version>/<stage. - list output of a given stage of a given version
+
+*/
+
 func routes() {
 	webRoot = http.NewServeMux()
 
+	webRoot.Handle("/", &methodHandler{
+		get: rootGet,
+	})
+
+	webRoot.Handle("/project/", &methodHandler{
+		get: projectGet,
+	})
+
+}
+
+func rootGet(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path == "/" {
+		//send index.html
+		serveAsset(w, r, "web/index.html")
+		return
+	}
+
+	serveAsset(w, r, path.Join("web", r.URL.Path))
+}
+
+func serveAsset(w http.ResponseWriter, r *http.Request, asset string) {
+	data, err := Asset(asset)
+
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	http.ServeContent(w, r, r.URL.Path, time.Time{}, bytes.NewReader(data))
 }
