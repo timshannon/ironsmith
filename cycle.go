@@ -220,7 +220,7 @@ func (p *Project) fetch() {
 	}
 
 	//log fetch results
-	if p.errHandled(p.ds.AddLog(p.stage, p.version, string(fetchResult))) {
+	if p.errHandled(p.ds.AddLog(p.version, p.stage, string(fetchResult))) {
 		return
 	}
 
@@ -241,7 +241,7 @@ func (p *Project) build() {
 		return
 	}
 
-	if p.errHandled(p.ds.AddLog(p.stage, p.version, string(output))) {
+	if p.errHandled(p.ds.AddLog(p.version, p.stage, string(output))) {
 		return
 	}
 
@@ -260,7 +260,7 @@ func (p *Project) test() {
 		return
 	}
 
-	if p.errHandled(p.ds.AddLog(p.stage, p.version, string(output))) {
+	if p.errHandled(p.ds.AddLog(p.version, p.stage, string(output))) {
 		return
 	}
 
@@ -280,7 +280,7 @@ func (p *Project) release() {
 		return
 	}
 
-	if p.errHandled(p.ds.AddLog(p.stage, p.version, string(output))) {
+	if p.errHandled(p.ds.AddLog(p.version, p.stage, string(output))) {
 		return
 	}
 

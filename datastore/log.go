@@ -41,7 +41,7 @@ func (ds *Store) LatestVersion() (string, error) {
 	err := ds.bolt.View(func(tx *bolt.Tx) error {
 		c := tx.Bucket([]byte(bucketLog)).Cursor()
 
-		for k, v := c.Last(); k != nil; k, v = c.Prev() {
+		for k, v := c.First(); k != nil; k, v = c.Next() {
 			l := &log{}
 			err := json.Unmarshal(v, l)
 			if err != nil {
@@ -60,5 +60,6 @@ func (ds *Store) LatestVersion() (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	return version, nil
 }
