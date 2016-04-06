@@ -5,12 +5,9 @@
 package main
 
 import (
-	"crypto/sha1"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -19,83 +16,6 @@ import (
 
 	"git.townsourced.com/ironsmith/datastore"
 )
-
-func (p *Project) errHandled(err error) bool {
-	if err == nil {
-		return false
-	}
-
-	vlog("Error in project %s: %s\n", p.id(), err)
-
-	if p.ds == nil {
-		log.Printf("Error in project %s: %s\n", p.id(), err)
-		return true
-	}
-	defer func() {
-		//clean up version folder if it exists
-
-		if p.version != "" {
-			err = os.RemoveAll(p.workingDir())
-			if err != nil {
-				log.Printf("Error deleting the version directory project %s version %s: %s\n",
-					p.id(), p.version, err)
-			}
-
-		}
-	}()
-
-	lerr := p.ds.AddLog(p.version, p.stage, err.Error())
-	if lerr != nil {
-		log.Printf("Error logging an error in project %s: Original error %s, Logging Error: %s",
-			p.id(), err, lerr)
-	}
-
-	return true
-}
-
-func (p *Project) id() string {
-	if p.filename == "" {
-		panic("invalid project filename")
-	}
-	return strings.TrimSuffix(p.filename, filepath.Ext(p.filename))
-}
-
-func (p *Project) dir() string {
-	return filepath.Join(dataDir, p.id())
-}
-
-func (p *Project) workingDir() string {
-	if p.hash == "" {
-		panic(fmt.Sprintf("Working dir called with no version hash set for project %s", p.id()))
-	}
-
-	//It's probably overkill to use a sha1 hash to identify the build folder, when putting a simple
-	// timestamp on instead would work just fine, but I like having the working dir tied directly to the
-	// version returned by project script
-
-	return filepath.Join(p.dir(), p.hash)
-}
-
-// prepData makes sure the project's data folder and data store is created
-/*
-	folder structure
-	projectDataFolder/<project-name>/<project-version>
-
-*/
-func (p *Project) prepData() error {
-	err := os.MkdirAll(p.dir(), 0777)
-	if err != nil {
-		return err
-	}
-
-	p.ds, err = datastore.Open(filepath.Join(p.dir(), p.id()+".ironsmith"))
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
 
 /*
 Project life cycle:
@@ -107,20 +27,19 @@ Project life cycle:
 // load is the beginning of the cycle.  Loads / reloads the project file to make sure that the scripts are up-to-date
 // call's fetch and triggers the next poll if one exists
 func (p *Project) load() {
-	p.version = ""
-	p.hash = ""
-
-	vlog("Entering %s stage for Project: %s\n", stageLoad, p.id())
+	p.setStage(stageLoad)
+	p.setVersion("")
 
 	if p.filename == "" {
 		p.errHandled(errors.New("Invalid project file name"))
 		return
 	}
 
-	if !projects.exists(p.filename) {
+	if _, ok := projects.get(p.id()); !ok {
 		// project has been deleted
 		// don't continue polling
 		// move project data to deleted folder with a timestamp
+		p.close()
 		p.errHandled(os.Rename(p.dir(), filepath.Join(dataDir, deletedProjectDir,
 			strconv.FormatInt(time.Now().Unix(), 10), p.id())))
 		return
@@ -131,29 +50,18 @@ func (p *Project) load() {
 		return
 	}
 
-	if p.errHandled(json.Unmarshal(data, p)) {
+	new := &Project{}
+	if p.errHandled(json.Unmarshal(data, new)) {
 		return
 	}
 
-	p.stage = stageLoad
+	p.setData(new)
 
-	if p.errHandled(p.prepData()) {
+	if p.errHandled(os.MkdirAll(p.dir(), 0777)) {
 		return
-	}
-
-	if p.PollInterval != "" {
-		p.poll, err = time.ParseDuration(p.PollInterval)
-		if p.errHandled(err) {
-			p.poll = 0
-		}
 	}
 
 	p.fetch()
-
-	if p.errHandled(p.ds.Close()) {
-		return
-	}
-	p.ds = nil
 
 	//full cycle completed
 
@@ -167,9 +75,8 @@ func (p *Project) load() {
 // then it runs the version script in the temp directory to see if there is a newer version of the
 // fetched code, if there is then the temp dir is renamed to the version name
 func (p *Project) fetch() {
-	p.stage = stageFetch
+	p.setStage(stageFetch)
 
-	vlog("Entering %s stage for Project: %s\n", p.stage, p.id())
 	tempDir := filepath.Join(p.dir(), strconv.FormatInt(time.Now().Unix(), 10))
 
 	if p.errHandled(os.MkdirAll(tempDir, 0777)) {
@@ -189,9 +96,9 @@ func (p *Project) fetch() {
 		return
 	}
 
-	p.version = strings.TrimSpace(string(version))
+	p.setVersion(strings.TrimSpace(string(version)))
 
-	lVer, err := p.ds.LatestVersion()
+	lVer, err := p.ds.LastVersion("")
 	if err != datastore.ErrNotFound && p.errHandled(err) {
 		return
 	}
@@ -203,8 +110,6 @@ func (p *Project) fetch() {
 		vlog("No new version found for Project: %s Version: %s.\n", p.id(), p.version)
 		return
 	}
-
-	p.hash = fmt.Sprintf("%x", sha1.Sum([]byte(p.version)))
 
 	//remove any existing data that matches version hash
 	if p.errHandled(os.RemoveAll(p.workingDir())) {
@@ -225,14 +130,12 @@ func (p *Project) fetch() {
 
 	// continue to build
 	p.build()
-
 }
 
 // build  runs the build scripts to build the project which should result in the a single file
 // configured in the ReleaseFile section of the project file
 func (p *Project) build() {
-	p.stage = stageBuild
-	vlog("Entering %s stage for Project: %s Version: %s\n", p.stage, p.id(), p.version)
+	p.setStage(stageBuild)
 
 	output, err := runCmd(p.Build, p.workingDir())
 
@@ -250,9 +153,7 @@ func (p *Project) build() {
 
 // test runs the test scripts
 func (p *Project) test() {
-	p.stage = stageTest
-	vlog("Entering %s stage for Project: %s Version: %s\n", p.stage, p.id(), p.version)
-
+	p.setStage(stageTest)
 	output, err := runCmd(p.Test, p.workingDir())
 
 	if p.errHandled(err) {
@@ -265,13 +166,11 @@ func (p *Project) test() {
 
 	//  Tests passed, onto release
 	p.release()
-
 }
 
 // release runs the release scripts and builds the release file
 func (p *Project) release() {
-	p.stage = stageRelease
-	vlog("Entering %s stage for Project: %s Version: %s\n", p.stage, p.id(), p.version)
+	p.setStage(stageRelease)
 
 	output, err := runCmd(p.Release, p.workingDir())
 

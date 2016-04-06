@@ -37,7 +37,7 @@ func init() {
 	go func() {
 		for sig := range c {
 			if sig == os.Interrupt {
-				projects.closeAll()
+				projects.stopAll()
 				os.Exit(0)
 			}
 		}
@@ -91,7 +91,6 @@ func main() {
 	}
 
 	//start web server
-
 	err = startServer()
 	if err != nil {
 		log.Fatalf("Error Starting web server: %s", err)

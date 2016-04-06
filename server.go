@@ -82,7 +82,7 @@ Routes
 
 	/project/ - list all projects
 	/project/<project-id> - list all versions in a project, triggers new builds
-	/project/<project-id>/<version> - list combined output of all stages
+	/project/<project-id>/<version> - list combined output of all stages for a given version
 	/project/<project-id>/<version>/<stage. - list output of a given stage of a given version
 
 */

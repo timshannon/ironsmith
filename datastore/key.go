@@ -29,10 +29,6 @@ func NewTimeKey() TimeKey {
 	nsec := t.Nanosecond()
 
 	return TimeKey{
-		rBits[0], //random
-		rBits[1],
-		rBits[2],
-		rBits[3],
 		byte(sec >> 56), // seconds
 		byte(sec >> 48),
 		byte(sec >> 40),
@@ -45,12 +41,16 @@ func NewTimeKey() TimeKey {
 		byte(nsec >> 16),
 		byte(nsec >> 8),
 		byte(nsec),
+		rBits[0], //random
+		rBits[1],
+		rBits[2],
+		rBits[3],
 	}
 }
 
 // Time returns the time portion of a timekey
 func (k TimeKey) Time() time.Time {
-	buf := k[4:]
+	buf := k[:]
 
 	sec := int64(buf[7]) | int64(buf[6])<<8 | int64(buf[5])<<16 | int64(buf[4])<<24 |
 		int64(buf[3])<<32 | int64(buf[2])<<40 | int64(buf[1])<<48 | int64(buf[0])<<56

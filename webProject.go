@@ -5,13 +5,12 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
 )
 
-// /project/<project-id>/<version>/<stage>
+// /path/<project-id>/<version>/<stage>
 func splitPath(path string) (project, version, stage string) {
 	s := strings.Split(path, "/")
 	if len(s) < 3 {
@@ -33,8 +32,46 @@ func splitPath(path string) (project, version, stage string) {
 	return
 }
 
+// /project/*
 func projectGet(w http.ResponseWriter, r *http.Request) {
-	prj, ver, stg := splitPath(r.URL.Path)
+	prj, ver, _ := splitPath(r.URL.Path)
 
-	fmt.Printf("Project: %s Version: %s Stage: %s\n", prj, ver, stg)
+	//values := r.URL.Query()
+
+	if prj == "" {
+		//get all projects
+		pList, err := projects.webList()
+		if errHandled(err, w) {
+			return
+		}
+
+		respondJsend(w, &JSend{
+			Status: statusSuccess,
+			Data:   pList,
+		})
+
+		return
+	}
+
+	project, ok := projects.get(prj)
+	if !ok {
+		four04(w, r)
+		return
+	}
+
+	//project found
+
+	if ver == "" {
+		//list versions
+		vers, err := project.versions()
+		if errHandled(err, w) {
+			return
+		}
+		respondJsend(w, &JSend{
+			Status: statusSuccess,
+			Data:   vers,
+		})
+		return
+	}
+
 }
