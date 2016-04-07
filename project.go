@@ -214,6 +214,20 @@ func (p *Project) versions() ([]*datastore.Log, error) {
 	return p.ds.Versions()
 }
 
+func (p *Project) versionLog(version string) ([]*datastore.Log, error) {
+	p.RLock()
+	defer p.RUnlock()
+
+	return p.ds.VersionLog(version)
+}
+
+func (p *Project) stageLog(version, stage string) (*datastore.Log, error) {
+	p.RLock()
+	defer p.RUnlock()
+
+	return p.ds.StageLog(version, stage)
+}
+
 func (p *Project) setData(new *Project) {
 	p.Lock()
 	defer p.Unlock()

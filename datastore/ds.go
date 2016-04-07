@@ -15,8 +15,10 @@ import (
 	"github.com/boltdb/bolt"
 )
 
+//TODO: Move this all over to GobStore if I ever get around to finishing it
+
 // ErrNotFound is the error returned when a value cannot be found in the store for the given key
-var ErrNotFound = errors.New("Value not found")
+var ErrNotFound = errors.New("Value not found in datastore")
 
 // Store is a datastore for getting and setting data for a given ironsmith project
 // run on top of a Bolt DB file

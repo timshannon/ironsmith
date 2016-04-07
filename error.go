@@ -41,6 +41,7 @@ func errHandled(err error, w http.ResponseWriter) bool {
 		errMsg = fmt.Sprintf("We had trouble parsing your input, please check your input and try again: %s", err)
 	default:
 		status = statusError
+		log.Printf("An error has occurred from a web request: %s", errMsg)
 		errMsg = "An internal server error has occurred"
 	}
 

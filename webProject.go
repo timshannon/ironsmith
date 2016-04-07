@@ -32,14 +32,17 @@ func splitPath(path string) (project, version, stage string) {
 	return
 }
 
-// /project/*
-func projectGet(w http.ResponseWriter, r *http.Request) {
-	prj, ver, _ := splitPath(r.URL.Path)
-
-	//values := r.URL.Query()
+/*
+	/log/ - list all projects
+	/log/<project-id> - list all versions in a project, triggers new builds
+	/log/<project-id>/<version> - list combined output of all stages for a given version
+	/log/<project-id>/<version>/<stage> - list output of a given stage of a given version
+*/
+func logGet(w http.ResponseWriter, r *http.Request) {
+	prj, ver, stg := splitPath(r.URL.Path)
 
 	if prj == "" {
-		//get all projects
+		///log/ - list all projects
 		pList, err := projects.webList()
 		if errHandled(err, w) {
 			return
@@ -62,7 +65,8 @@ func projectGet(w http.ResponseWriter, r *http.Request) {
 	//project found
 
 	if ver == "" {
-		//list versions
+		///log/<project-id> - list all versions in a project, triggers new builds
+
 		vers, err := project.versions()
 		if errHandled(err, w) {
 			return
@@ -74,4 +78,72 @@ func projectGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//ver found
+	if stg == "" {
+		///log/<project-id>/<version> - list combined output of all stages for a given version
+		logs, err := project.versionLog(ver)
+		if errHandled(err, w) {
+			return
+		}
+		respondJsend(w, &JSend{
+			Status: statusSuccess,
+			Data:   logs,
+		})
+		return
+	}
+
+	//stage found
+	///log/<project-id>/<version>/<stage> - list output of a given stage of a given version
+
+	log, err := project.stageLog(ver, stg)
+	if errHandled(err, w) {
+		return
+	}
+
+	respondJsend(w, &JSend{
+		Status: statusSuccess,
+		Data:   log,
+	})
+	return
+}
+
+/*
+	/release/<project-id>/<version>
+
+	/release/<project-id> - list last release for a given project  ?all returns all the releases for a project
+	/release/<project-id>/<version> - list release for a given project version
+*/
+func releaseGet(w http.ResponseWriter, r *http.Request) {
+	prj, ver, stg := splitPath(r.URL.Path)
+
+	values := r.URL.Query()
+
+	if prj == "" {
+		four04(w, r)
+		return
+	}
+
+	project, ok := projects.get(prj)
+	if !ok {
+		four04(w, r)
+		return
+	}
+
+	//project found
+
+	if ver == "" {
+		///release/<project-id> - list last release for a given project  ?all returns all the releases for a project
+
+		vers, err := project.versions()
+		if errHandled(err, w) {
+			return
+		}
+		respondJsend(w, &JSend{
+			Status: statusSuccess,
+			Data:   vers,
+		})
+		return
+	}
+
+	//ver found
 }

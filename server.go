@@ -77,14 +77,23 @@ func (m *methodHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 /*
-Routes
-	/project/<project-id>/<version>/<stage>
+log Routes
+	/log/<project-id>/<version>/<stage>
 
-	/project/ - list all projects
-	/project/<project-id> - list all versions in a project, triggers new builds
-	/project/<project-id>/<version> - list combined output of all stages for a given version
-	/project/<project-id>/<version>/<stage. - list output of a given stage of a given version
+	/log/ - list all projects
+	/log/<project-id> - list all versions in a project, triggers new builds
+	/log/<project-id>/<version> - list combined output of all stages for a given version
+	/log/<project-id>/<version>/<stage> - list output of a given stage of a given version
 
+release routes
+	/release/<project-id>/<version>
+
+	/release/<project-id> - list last release for a given project  ?all returns all the releases for a project
+	/release/<project-id>/<version> - list release for a given project version
+
+trigger routes
+	/trigger/<project-id>
+		Triggers a project to start a cycle
 */
 
 func routes() {
@@ -94,8 +103,8 @@ func routes() {
 		get: rootGet,
 	})
 
-	webRoot.Handle("/project/", &methodHandler{
-		get: projectGet,
+	webRoot.Handle("/log/", &methodHandler{
+		get: logGet,
 	})
 
 }

@@ -77,6 +77,10 @@ func (p *Project) load() {
 func (p *Project) fetch() {
 	p.setStage(stageFetch)
 
+	if p.Fetch == "" {
+		return
+	}
+
 	tempDir := filepath.Join(p.dir(), strconv.FormatInt(time.Now().Unix(), 10))
 
 	if p.errHandled(os.MkdirAll(tempDir, 0777)) {
@@ -137,6 +141,10 @@ func (p *Project) fetch() {
 func (p *Project) build() {
 	p.setStage(stageBuild)
 
+	if p.Build == "" {
+		return
+	}
+
 	output, err := runCmd(p.Build, p.workingDir())
 
 	if p.errHandled(err) {
@@ -154,6 +162,10 @@ func (p *Project) build() {
 // test runs the test scripts
 func (p *Project) test() {
 	p.setStage(stageTest)
+
+	if p.Test == "" {
+		return
+	}
 	output, err := runCmd(p.Test, p.workingDir())
 
 	if p.errHandled(err) {
@@ -171,6 +183,10 @@ func (p *Project) test() {
 // release runs the release scripts and builds the release file
 func (p *Project) release() {
 	p.setStage(stageRelease)
+
+	if p.Release == "" {
+		return
+	}
 
 	output, err := runCmd(p.Release, p.workingDir())
 
@@ -193,7 +209,7 @@ func (p *Project) release() {
 		return
 	}
 
-	if p.errHandled(p.ds.AddRelease(p.version, buff)) {
+	if p.errHandled(p.ds.AddRelease(p.version, p.ReleaseFile, buff)) {
 		return
 	}
 

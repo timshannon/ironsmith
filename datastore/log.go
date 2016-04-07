@@ -58,7 +58,7 @@ func (ds *Store) LastVersion(stage string) (string, error) {
 			}
 		}
 
-		return ErrNotFound
+		return nil // not found return blank
 	})
 
 	if err != nil {
@@ -101,4 +101,80 @@ func (ds *Store) Versions() ([]*Log, error) {
 	}
 
 	return vers, nil
+}
+
+// VersionLog returns all the log entries for a given version
+func (ds *Store) VersionLog(version string) ([]*Log, error) {
+	var logs []*Log
+
+	if version == "" {
+		return logs, nil
+	}
+
+	verFound := false
+
+	err := ds.bolt.View(func(tx *bolt.Tx) error {
+		c := tx.Bucket([]byte(bucketLog)).Cursor()
+
+		for k, v := c.Last(); k != nil; k, v = c.Prev() {
+			l := &Log{}
+			err := json.Unmarshal(v, l)
+			if err != nil {
+				return err
+			}
+
+			if verFound && l.Version != version {
+				return nil
+			}
+
+			if l.Version == version {
+				logs = append(logs, l)
+				verFound = true
+			}
+
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return logs, nil
+}
+
+// StageLog returns the log entry for a given version + stage
+func (ds *Store) StageLog(version, stage string) (*Log, error) {
+	var entry *Log
+
+	if version == "" || stage == "" {
+		return nil, ErrNotFound
+	}
+
+	err := ds.bolt.View(func(tx *bolt.Tx) error {
+		c := tx.Bucket([]byte(bucketLog)).Cursor()
+
+		for k, v := c.Last(); k != nil; k, v = c.Prev() {
+			l := &Log{}
+			err := json.Unmarshal(v, l)
+			if err != nil {
+				return err
+			}
+
+			if l.Version == version && l.Stage == stage {
+				entry = l
+				return nil
+			}
+
+		}
+
+		return ErrNotFound
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return entry, nil
 }
