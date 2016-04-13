@@ -27,6 +27,9 @@ Project life cycle:
 // load is the beginning of the cycle.  Loads / reloads the project file to make sure that the scripts are up-to-date
 // call's fetch and triggers the next poll if one exists
 func (p *Project) load() {
+	p.processing.Lock() // ensure only one cycle is running at a time per project
+	defer p.processing.Unlock()
+
 	p.setStage(stageLoad)
 	p.setVersion("")
 
@@ -39,7 +42,9 @@ func (p *Project) load() {
 		// project has been deleted
 		// don't continue polling
 		// move project data to deleted folder with a timestamp
-		p.close()
+		if p.errHandled(p.close()) {
+			return
+		}
 		p.errHandled(os.Rename(p.dir(), filepath.Join(dataDir, deletedProjectDir,
 			strconv.FormatInt(time.Now().Unix(), 10), p.id())))
 		return
@@ -57,17 +62,17 @@ func (p *Project) load() {
 
 	p.setData(new)
 
-	if p.errHandled(os.MkdirAll(p.dir(), 0777)) {
-		return
-	}
-
 	p.fetch()
+
+	p.setStage(stageWait)
 
 	//full cycle completed
 
 	if p.poll > 0 {
 		//start polling
-		time.AfterFunc(p.poll, p.load)
+		go func() {
+			time.AfterFunc(p.poll, p.load)
+		}()
 	}
 }
 

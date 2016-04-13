@@ -25,11 +25,12 @@ const (
 
 //stages
 const (
-	stageLoad    = "load"
-	stageFetch   = "fetch"
-	stageBuild   = "build"
-	stageTest    = "test"
-	stageRelease = "release"
+	stageLoad    = "loading"
+	stageFetch   = "fetching"
+	stageBuild   = "building"
+	stageTest    = "testing"
+	stageRelease = "releasing"
+	stageWait    = "waiting"
 )
 
 const projectFilePoll = 30 * time.Second
@@ -61,10 +62,12 @@ type Project struct {
 	poll     time.Duration
 	ds       *datastore.Store
 	stage    string
+	status   string
 	version  string
 	hash     string
 
 	sync.RWMutex
+	processing sync.Mutex
 }
 
 func (p *Project) errHandled(err error) bool {
@@ -140,6 +143,11 @@ func (p *Project) open() error {
 		return nil
 	}
 
+	err := os.MkdirAll(p.dir(), 0777)
+	if err != nil {
+		return err
+	}
+
 	ds, err := datastore.Open(filepath.Join(p.dir(), p.id()+".ironsmith"))
 	if err != nil {
 		return err
@@ -168,9 +176,9 @@ func (p *Project) setStage(stage string) {
 	defer p.Unlock()
 
 	if p.version != "" {
-		vlog("Entering %s stage for Project: %s Version: %s\n", p.stage, p.id(), p.version)
+		vlog("Entering %s stage for Project: %s Version: %s\n", stage, p.id(), p.version)
 	} else {
-		vlog("Entering %s stage for Project: %s\n", p.stage, p.id())
+		vlog("Entering %s stage for Project: %s\n", stage, p.id())
 	}
 
 	p.stage = stage
@@ -181,6 +189,7 @@ type webProject struct {
 	Name           string `json:"name"`
 	ReleaseVersion string `json:"releaseVersion"` //last successfully released version
 	LastVersion    string `json:"lastVersion"`    //last version success or otherwise
+	Stage          string `json:"stage"`          // current stage
 }
 
 func (p *Project) webData() (*webProject, error) {
@@ -202,6 +211,7 @@ func (p *Project) webData() (*webProject, error) {
 		ID:             p.id(),
 		LastVersion:    last,
 		ReleaseVersion: release,
+		Stage:          p.stage,
 	}
 
 	return d, nil
@@ -302,7 +312,7 @@ const projectTemplateFilename = "template.project.json"
 var projectTemplate = &Project{
 	Name:    "Template Project",
 	Fetch:   "git clone root@git.townsourced.com:tshannon/ironsmith.git .",
-	Build:   "go build -o ironsmith",
+	Build:   "go build -a -v -o ironsmith",
 	Test:    "go test ./...",
 	Release: "tar -czf release.tar.gz ironsmith",
 	Version: "git describe --tags --long",

@@ -166,6 +166,7 @@ func releaseGet(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
+			w.Header().Add("Content-disposition", `attachment; filename="`+last.FileName+`"`)
 			http.ServeContent(w, r, last.FileName, time.Time{}, bytes.NewReader(fileData))
 			return
 		}
@@ -191,6 +192,8 @@ func releaseGet(w http.ResponseWriter, r *http.Request) {
 		if errHandled(err, w, r) {
 			return
 		}
+
+		w.Header().Add("Content-disposition", `attachment; filename="`+release.FileName+`"`)
 		http.ServeContent(w, r, release.FileName, time.Time{}, bytes.NewReader(fileData))
 		return
 	}
@@ -199,4 +202,44 @@ func releaseGet(w http.ResponseWriter, r *http.Request) {
 		Status: statusSuccess,
 		Data:   release,
 	})
+}
+
+type triggerInput struct {
+	Secret string `json:"secret"`
+}
+
+/*trigger routes
+/trigger/<project-id>
+	Triggers a project to start a cycle
+*/
+func triggerPost(w http.ResponseWriter, r *http.Request) {
+	prj, _, _ := splitPath(r.URL.Path)
+
+	if prj == "" {
+		four04(w, r)
+		return
+	}
+
+	project, ok := projects.get(prj)
+	if !ok {
+		four04(w, r)
+		return
+	}
+
+	input := &triggerInput{}
+	if errHandled(parseInput(r, input), w, r) {
+		return
+	}
+
+	if input.Secret != project.TriggerSecret {
+		errHandled(&Fail{
+			Message:    "Invalid trigger secret for this project",
+			HTTPStatus: http.StatusUnauthorized,
+		}, w, r)
+		return
+	}
+
+	go func() {
+		project.load()
+	}()
 }

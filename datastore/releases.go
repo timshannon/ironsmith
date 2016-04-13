@@ -53,11 +53,11 @@ func (ds *Store) AddRelease(version, fileName string, fileData []byte) error {
 // ReleaseFile returns a specific file from a release for the given file key
 func (ds *Store) ReleaseFile(fileKey TimeKey) ([]byte, error) {
 	var fileData []byte
-
-	err := ds.get(bucketFiles, fileKey.Bytes(), &fileData)
+	err := ds.get(bucketFiles, fileKey.Bytes(), fileData)
 	if err != nil {
 		return nil, err
 	}
+
 	return fileData, nil
 }
 
@@ -100,12 +100,15 @@ func (ds *Store) Releases() ([]*Release, error) {
 
 // LastRelease lists the last release for a project
 func (ds *Store) LastRelease() (*Release, error) {
-	var r *Release
+	r := &Release{}
 
 	err := ds.bolt.View(func(tx *bolt.Tx) error {
 		c := tx.Bucket([]byte(bucketReleases)).Cursor()
 
 		_, v := c.Last()
+		if v == nil {
+			return ErrNotFound
+		}
 
 		err := json.Unmarshal(v, r)
 		if err != nil {
@@ -117,10 +120,6 @@ func (ds *Store) LastRelease() (*Release, error) {
 
 	if err != nil {
 		return nil, err
-	}
-
-	if r == nil {
-		return nil, ErrNotFound
 	}
 
 	return r, nil

@@ -83,3 +83,44 @@ func (k TimeKey) UUID() string {
 func (k TimeKey) Bytes() []byte {
 	return []byte(k[:])
 }
+
+// String returns the string representation of a timekey
+func (k TimeKey) String() string {
+	return k.UUID()
+}
+
+// MarshalJSON implements JSON marshaler
+func (k *TimeKey) MarshalJSON() ([]byte, error) {
+	return []byte(`"` + k.String() + `"`), nil
+}
+
+// UnmarshalJSON implements JSON unmarshaler
+func (k *TimeKey) UnmarshalJSON(buf []byte) error {
+	// drop quotes
+	buf = buf[1 : len(buf)-1]
+	_, err := hex.Decode(k[0:4], buf[0:8])
+	if err != nil {
+		return err
+	}
+
+	_, err = hex.Decode(k[4:6], buf[9:13])
+	if err != nil {
+		return err
+	}
+
+	_, err = hex.Decode(k[6:8], buf[14:18])
+	if err != nil {
+		return err
+	}
+
+	_, err = hex.Decode(k[8:10], buf[19:23])
+	if err != nil {
+		return err
+	}
+	_, err = hex.Decode(k[10:], buf[24:])
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

@@ -107,6 +107,14 @@ func routes() {
 		get: logGet,
 	})
 
+	webRoot.Handle("/release/", &methodHandler{
+		get: releaseGet,
+	})
+
+	webRoot.Handle("/trigger/", &methodHandler{
+		post: triggerPost,
+	})
+
 }
 
 func rootGet(w http.ResponseWriter, r *http.Request) {
