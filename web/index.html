@@ -15,6 +15,38 @@
 </head>
 <body>
 <script id="tMain" type="text/ractive">
+{{#if view == "projects"}}
+	{{>projects}}
+{{elseif view == "project"}}
+{{elseif view == "version"}}
+{{elseif view == "stage"}}
+{{/if}}
+
+
+{{#partial projects}}
+<table class="pure-table pure-table-striped">
+	<thead>
+		<tr>
+			<th>Project</th>
+			<th>Status</th>
+			<th>Stage</th>
+			<th>Last Release</th>
+			<th>Last Version</th>
+		</tr>
+	</thead>
+	<tbody>
+		{{#projects:i}}	
+			<tr>
+				<td>{{.name}}</td>
+				<td>{{.status}}</td>
+				<td>{{.stage}}</td>
+				<td>{{.releaseVersion}}</td>
+				<td>{{.lastVersion}}</td>
+			</tr>
+		{{/projects}}
+	</tbody>
+</table>
+{{/partial}}
 	
 </script>
 <script src="/js/ractive.min.js"></script>
