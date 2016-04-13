@@ -228,6 +228,35 @@ func (p *Project) stageLog(version, stage string) (*datastore.Log, error) {
 	return p.ds.StageLog(version, stage)
 }
 
+func (p *Project) releases() ([]*datastore.Release, error) {
+	p.RLock()
+	defer p.RUnlock()
+
+	return p.ds.Releases()
+}
+
+func (p *Project) lastRelease() (*datastore.Release, error) {
+	p.RLock()
+	defer p.RUnlock()
+
+	return p.ds.LastRelease()
+}
+func (p *Project) releaseData(version string) (*datastore.Release, error) {
+	p.RLock()
+	defer p.RUnlock()
+
+	return p.ds.Release(version)
+}
+
+func (p *Project) releaseFile(fileKey datastore.TimeKey) ([]byte, error) {
+	p.RLock()
+	defer p.RUnlock()
+
+	return p.ds.ReleaseFile(fileKey)
+}
+
+// releaseFile
+
 func (p *Project) setData(new *Project) {
 	p.Lock()
 	defer p.Unlock()

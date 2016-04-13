@@ -69,9 +69,9 @@ func (ds *Store) Close() error {
 	return ds.bolt.Close()
 }
 
-func (ds *Store) get(bucket string, key TimeKey, result interface{}) error {
+func (ds *Store) get(bucket string, key []byte, result interface{}) error {
 	return ds.bolt.View(func(tx *bolt.Tx) error {
-		dsValue := tx.Bucket([]byte(bucket)).Get(key.Bytes())
+		dsValue := tx.Bucket([]byte(bucket)).Get(key)
 
 		if dsValue == nil {
 			return ErrNotFound
@@ -90,7 +90,7 @@ func (ds *Store) get(bucket string, key TimeKey, result interface{}) error {
 	})
 }
 
-func (ds *Store) put(bucket string, key TimeKey, value interface{}) error {
+func (ds *Store) put(bucket string, key []byte, value interface{}) error {
 	var err error
 	dsValue, ok := value.([]byte)
 	if !ok {
@@ -101,12 +101,12 @@ func (ds *Store) put(bucket string, key TimeKey, value interface{}) error {
 	}
 
 	return ds.bolt.Update(func(tx *bolt.Tx) error {
-		return tx.Bucket([]byte(bucket)).Put(key.Bytes(), dsValue)
+		return tx.Bucket([]byte(bucket)).Put(key, dsValue)
 	})
 }
 
-func (ds *Store) delete(bucket string, key TimeKey) error {
+func (ds *Store) delete(bucket string, key []byte) error {
 	return ds.bolt.Update(func(tx *bolt.Tx) error {
-		return tx.Bucket([]byte(bucket)).Delete(key.Bytes())
+		return tx.Bucket([]byte(bucket)).Delete(key)
 	})
 }

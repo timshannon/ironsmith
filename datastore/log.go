@@ -32,7 +32,7 @@ func (ds *Store) AddLog(version, stage, entry string) error {
 		Log:     entry,
 	}
 
-	return ds.put(bucketLog, key, data)
+	return ds.put(bucketLog, key.Bytes(), data)
 }
 
 // LastVersion returns the last version in the log for the given stage.  If stage is blank,

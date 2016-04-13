@@ -11,7 +11,8 @@ import (
 	"github.com/boltdb/bolt"
 )
 
-type release struct {
+// Release is a record of the fully built and ready to deploy release file
+type Release struct {
 	When     time.Time `json:"when"`
 	Version  string    `json:"version"`
 	FileName string    `json:"fileName"`
@@ -27,7 +28,7 @@ const (
 func (ds *Store) AddRelease(version, fileName string, fileData []byte) error {
 	fileKey := NewTimeKey()
 
-	r := &release{
+	r := &Release{
 		When:     fileKey.Time(),
 		Version:  version,
 		FileName: fileName,
@@ -49,33 +50,42 @@ func (ds *Store) AddRelease(version, fileName string, fileData []byte) error {
 	})
 }
 
-func (ds *Store) Release(version string) {
+// ReleaseFile returns a specific file from a release for the given file key
+func (ds *Store) ReleaseFile(fileKey TimeKey) ([]byte, error) {
+	var fileData []byte
 
+	err := ds.get(bucketFiles, fileKey.Bytes(), &fileData)
+	if err != nil {
+		return nil, err
+	}
+	return fileData, nil
+}
+
+// Release gets the release record for a specific version
+func (ds *Store) Release(version string) (*Release, error) {
+	r := &Release{}
+	err := ds.get(bucketReleases, []byte(version), r)
+	if err != nil {
+		return nil, err
+	}
+	return r, nil
 }
 
 // Releases lists all the releases in a given project
-func (ds *Store) Releases() ([]*Log, error) {
-	var vers []*Log
+func (ds *Store) Releases() ([]*Release, error) {
+	var vers []*Release
 
 	err := ds.bolt.View(func(tx *bolt.Tx) error {
-		c := tx.Bucket([]byte(bucketLog)).Cursor()
-
-		var current = ""
+		c := tx.Bucket([]byte(bucketReleases)).Cursor()
 
 		for k, v := c.Last(); k != nil; k, v = c.Prev() {
-			l := &Log{}
-			err := json.Unmarshal(v, l)
+			r := &Release{}
+			err := json.Unmarshal(v, r)
 			if err != nil {
 				return err
 			}
 
-			// capture the newest entry for each version
-			if l.Version != current {
-				l.Log = "" // only care about date, ver and stage
-				vers = append(vers, l)
-				current = l.Version
-			}
-
+			vers = append(vers, r)
 		}
 
 		return nil
@@ -86,4 +96,32 @@ func (ds *Store) Releases() ([]*Log, error) {
 	}
 
 	return vers, nil
+}
+
+// LastRelease lists the last release for a project
+func (ds *Store) LastRelease() (*Release, error) {
+	var r *Release
+
+	err := ds.bolt.View(func(tx *bolt.Tx) error {
+		c := tx.Bucket([]byte(bucketReleases)).Cursor()
+
+		_, v := c.Last()
+
+		err := json.Unmarshal(v, r)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if r == nil {
+		return nil, ErrNotFound
+	}
+
+	return r, nil
 }

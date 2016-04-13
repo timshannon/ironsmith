@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+
+	"git.townsourced.com/ironsmith/datastore"
 )
 
 const (
@@ -19,9 +21,14 @@ const (
 // Err404 is a standard 404 error response
 var Err404 = errors.New("Resource not found")
 
-func errHandled(err error, w http.ResponseWriter) bool {
+func errHandled(err error, w http.ResponseWriter, r *http.Request) bool {
 	if err == nil {
 		return false
+	}
+
+	if err == datastore.ErrNotFound {
+		four04(w, r)
+		return true
 	}
 
 	var status, errMsg string
