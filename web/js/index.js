@@ -11,7 +11,9 @@
         template: "#tMain",
         data: function() {
             return {
-                view: "projects",
+                project: null,
+                version: null,
+                stage: null,
                 projects: [],
             };
         },
@@ -69,3 +71,4 @@ function get(url, success, error) {
     "use strict";
     ajax("GET", url, null, success, error);
 }
+

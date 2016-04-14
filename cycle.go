@@ -107,12 +107,13 @@ func (p *Project) fetch() {
 
 	p.setVersion(strings.TrimSpace(string(version)))
 
-	lVer, err := p.ds.LastVersion("")
+	// check if this specific version has attempted a build yet
+	lVer, err := p.ds.LastVersion(stageBuild)
 	if err != datastore.ErrNotFound && p.errHandled(err) {
 		return
 	}
 
-	if p.version == "" || p.version == lVer {
+	if p.version == "" || p.version == lVer.Version {
 		// no new build clean up temp dir
 		p.errHandled(os.RemoveAll(tempDir))
 

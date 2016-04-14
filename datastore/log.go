@@ -37,8 +37,8 @@ func (ds *Store) AddLog(version, stage, entry string) error {
 
 // LastVersion returns the last version in the log for the given stage.  If stage is blank,
 // then it returns the last of any stage
-func (ds *Store) LastVersion(stage string) (string, error) {
-	version := ""
+func (ds *Store) LastVersion(stage string) (*Log, error) {
+	last := &Log{}
 
 	err := ds.bolt.View(func(tx *bolt.Tx) error {
 		c := tx.Bucket([]byte(bucketLog)).Cursor()
@@ -52,7 +52,7 @@ func (ds *Store) LastVersion(stage string) (string, error) {
 
 			if l.Version != "" {
 				if stage == "" || l.Stage == stage {
-					version = l.Version
+					last = l
 					return nil
 				}
 			}
@@ -62,10 +62,10 @@ func (ds *Store) LastVersion(stage string) (string, error) {
 	})
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return version, nil
+	return last, nil
 }
 
 // Versions lists the versions in a given project, including the last stage that version got to

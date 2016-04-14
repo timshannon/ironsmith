@@ -189,6 +189,7 @@ type webProject struct {
 	Name           string `json:"name"`
 	ReleaseVersion string `json:"releaseVersion"` //last successfully released version
 	LastVersion    string `json:"lastVersion"`    //last version success or otherwise
+	LastLog        string `json:"lastLog"`        // last log entry of last cycle
 	Stage          string `json:"stage"`          // current stage
 }
 
@@ -209,8 +210,9 @@ func (p *Project) webData() (*webProject, error) {
 	d := &webProject{
 		Name:           p.Name,
 		ID:             p.id(),
-		LastVersion:    last,
-		ReleaseVersion: release,
+		ReleaseVersion: release.Version,
+		LastVersion:    last.Version,
+		LastLog:        last.Log,
 		Stage:          p.stage,
 	}
 

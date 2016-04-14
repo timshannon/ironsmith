@@ -10,20 +10,86 @@
 	<link rel="stylesheet" href="/css/pure-min.css">
 
 	<style>
+		.container {
+			padding-right: 15px;
+			padding-left: 15px;
+			margin-right: auto;
+			margin-left: auto;
+		}
 
+		@media (min-width: 768px) {
+			.container {
+				padding-right: 40px;
+				padding-left: 40px;
+			}
+		}
+
+		.center-block {
+			display: block;
+			margin-left: auto;
+			margin-right: auto;
+		}
+
+		.text-center {
+			text-align: center;
+		}
+
+		/*tables*/
+
+		.table-responsive {
+			margin-left: auto;
+			margin-right: auto;
+
+			overflow-x: auto;
+			-webkit-overflow-scrolling: touch;
+			margin-bottom: 1em;
+		}
+
+		.table-responsive table {
+			width: 100%;
+			max-width: 100%;
+		}
+
+		/*stages*/
+		.stage-load {
+
+		}
+
+		.stage-fetch {
+
+		}
+
+		.stage-build {
+
+		}
+
+		.stage-test {
+
+		}
+
+		.stage-release {
+
+		}
+	
 	</style>
 </head>
 <body>
 <script id="tMain" type="text/ractive">
-{{#if view == "projects"}}
-	{{>projects}}
-{{elseif view == "project"}}
-{{elseif view == "version"}}
-{{elseif view == "stage"}}
-{{/if}}
+<div class="container pure-g">
+	<div class="pure-u-1">
+		<h3 class="text-center">Iron Smith Project List</h3>
+		{{#if !project}}
+			{{>projects}}
+		{{elseif !version}}
+		{{elseif !stage}}
+		{{else}}
+		{{/if}}
+	</div>
+</div>
 
 
 {{#partial projects}}
+<div class="table-responsive">
 <table class="pure-table pure-table-striped">
 	<thead>
 		<tr>
@@ -32,6 +98,7 @@
 			<th>Stage</th>
 			<th>Last Release</th>
 			<th>Last Version</th>
+			<th>Last Log</th>
 		</tr>
 	</thead>
 	<tbody>
@@ -42,10 +109,12 @@
 				<td>{{.stage}}</td>
 				<td>{{.releaseVersion}}</td>
 				<td>{{.lastVersion}}</td>
+				<td title="{{.lastLog}}">{{.lastLog.substring(0,100) + " ..."}}</td>
 			</tr>
 		{{/projects}}
 	</tbody>
 </table>
+</div>
 {{/partial}}
 	
 </script>
