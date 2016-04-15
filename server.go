@@ -103,6 +103,14 @@ func routes() {
 		get: rootGet,
 	})
 
+	webRoot.Handle("/js/", &methodHandler{
+		get: assetGet,
+	})
+
+	webRoot.Handle("/css/", &methodHandler{
+		get: assetGet,
+	})
+
 	webRoot.Handle("/log/", &methodHandler{
 		get: logGet,
 	})
@@ -118,12 +126,11 @@ func routes() {
 }
 
 func rootGet(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path == "/" {
-		//send index.html
-		serveAsset(w, r, "web/index.html")
-		return
-	}
+	//send index.html
+	serveAsset(w, r, "web/index.html")
+}
 
+func assetGet(w http.ResponseWriter, r *http.Request) {
 	serveAsset(w, r, path.Join("web", r.URL.Path))
 }
 

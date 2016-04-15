@@ -185,12 +185,11 @@ func (p *Project) setStage(stage string) {
 }
 
 type webProject struct {
-	ID             string `json:"id"`
-	Name           string `json:"name"`
-	ReleaseVersion string `json:"releaseVersion"` //last successfully released version
-	LastVersion    string `json:"lastVersion"`    //last version success or otherwise
-	LastLog        string `json:"lastLog"`        // last log entry of last cycle
-	Stage          string `json:"stage"`          // current stage
+	ID             string         `json:"id"`
+	Name           string         `json:"name"`
+	ReleaseVersion string         `json:"releaseVersion"` //last successfully released version
+	Stage          string         `json:"stage"`          // current stage
+	LastLog        *datastore.Log `json:"lastLog"`
 }
 
 func (p *Project) webData() (*webProject, error) {
@@ -211,9 +210,8 @@ func (p *Project) webData() (*webProject, error) {
 		Name:           p.Name,
 		ID:             p.id(),
 		ReleaseVersion: release.Version,
-		LastVersion:    last.Version,
-		LastLog:        last.Log,
 		Stage:          p.stage,
+		LastLog:        last,
 	}
 
 	return d, nil

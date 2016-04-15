@@ -39,10 +39,7 @@
 		.table-responsive {
 			margin-left: auto;
 			margin-right: auto;
-
 			overflow-x: auto;
-			-webkit-overflow-scrolling: touch;
-			margin-bottom: 1em;
 		}
 
 		.table-responsive table {
@@ -50,7 +47,18 @@
 			max-width: 100%;
 		}
 
+		/* error */
+		.error {
+			display: inline-block;
+			background-color: red;
+			color: white;
+			border-radius: 4px;
+			padding: .5em 1em;
+			margin: 10px;
+		}
+
 		/*stages*/
+
 		.stage-load {
 
 		}
@@ -70,6 +78,18 @@
 		.stage-release {
 
 		}
+
+		/* breadcrumbs */
+
+		#breadcrumbs {
+			margin-bottom: 10px;
+		}
+
+		.breadcrumb-separator {
+			color: #ccc;
+			font-weight: bold;
+			font-size: 2em;
+		}
 	
 	</style>
 </head>
@@ -77,12 +97,51 @@
 <script id="tMain" type="text/ractive">
 <div class="container pure-g">
 	<div class="pure-u-1">
-		<h3 class="text-center">Iron Smith Project List</h3>
+		<h3 class="text-center">Iron Smith</h3>
+		{{#if error}}
+			<div class="text-center">
+				<span class="error">{{error}}</span>
+			</div>
+		{{/if}}
+		<div id="breadcrumbs" class="pure-menu pure-menu-horizontal text-center">
+			<ul class="pure-menu-list">
+				<li class="pure-menu-item">
+					<a href="/" class="pure-menu-link">Project List</a>
+				</li>
+				{{#if project}}
+					<li class="pure-menu-item">
+						<span class="breadcrumb-separator">/</span>
+					</li>
+					<li class="pure-menu-item">
+						<a href="/project/{{project.id}}" class="pure-menu-link">{{project.name}}</a>
+					</li>
+				{{/if}}
+				{{#if project && version}}
+					<li class="pure-menu-item">
+						<span class="breadcrumb-separator">/</span>
+					</li>
+					<li class="pure-menu-item">
+						<a href="/project/{{project.id}}/{{version}}" class="pure-menu-link">{{version}}</a>
+					</li>
+				{{/if}}
+				{{#if project && version && stage}}
+					<li class="pure-menu-item">
+						<span class="breadcrumb-separator">/</span>
+					</li>
+					<li class="pure-menu-item">
+						<a href="/project/{{project.id}}/{{version}}/{{stage}}" class="pure-menu-link">{{stage}}</a>
+					</li>
+				{{/if}}
+			</ul>
+		</div>
 		{{#if !project}}
 			{{>projects}}
 		{{elseif !version}}
+			{{>project}}
 		{{elseif !stage}}
+			{{>version}}
 		{{else}}
+			{{>stage}}
 		{{/if}}
 	</div>
 </div>
@@ -104,17 +163,27 @@
 	<tbody>
 		{{#projects:i}}	
 			<tr>
-				<td>{{.name}}</td>
+				<td><a href="/project/{{.id}}/">{{.name}}</a></td>
 				<td>{{.status}}</td>
 				<td>{{.stage}}</td>
 				<td>{{.releaseVersion}}</td>
-				<td>{{.lastVersion}}</td>
-				<td title="{{.lastLog}}">{{.lastLog.substring(0,100) + " ..."}}</td>
+				<td>{{.lastLog.version}}</td>
+				<td title="{{.lastLog.log}}">{{#if .lastLog.log}}{{.lastLog.log.substring(0,100) + " ..."}}{{/if}}</td>
 			</tr>
 		{{/projects}}
 	</tbody>
 </table>
 </div>
+{{/partial}}
+
+{{#partial project}}
+{{/partial}}
+
+{{#partial version}}
+{{/partial}}
+
+{{#partial stage}}
+
 {{/partial}}
 	
 </script>
