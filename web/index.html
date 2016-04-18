@@ -68,7 +68,29 @@
 			font-weight: bold;
 			font-size: 2em;
 		}
+
+
+		.pull-left {
+			float: left;
+		}
+		.pull-right {
+			float: right;
+		}
 	
+		.timestamp {
+			font-size: .75em;
+			color: #777;
+			margin-left: 10px;
+		}
+
+		.log {
+			margin-left: 15px;
+			margin-right: 15px;
+		}
+
+		.log > pre {
+			margin-left: 15px;
+		}
 	</style>
 </head>
 <body>
@@ -102,12 +124,12 @@
 						<a href="/project/{{project.id}}/{{version}}" class="pure-menu-link">{{version}}</a>
 					</li>
 				{{/if}}
-				{{#if project && version && stage}}
+				{{#if project && version && currentStage}}
 					<li class="pure-menu-item">
 						<span class="breadcrumb-separator">/</span>
 					</li>
 					<li class="pure-menu-item">
-						<a href="/project/{{project.id}}/{{version}}/{{stage}}" class="pure-menu-link">{{stage}}</a>
+						<a href="/project/{{project.id}}/{{version}}/{{currentStage}}" class="pure-menu-link">{{currentStage}}</a>
 					</li>
 				{{/if}}
 			</ul>
@@ -116,10 +138,8 @@
 			{{>projects}}
 		{{elseif !version}}
 			{{>project}}
-		{{elseif !stage}}
-			{{>version}}
 		{{else}}
-			{{>stage}}
+			{{>version}}
 		{{/if}}
 	</div>
 </div>
@@ -141,7 +161,7 @@
 	</thead>
 	<tbody>
 		{{#projects:i}}	
-			<tr>
+			<tr title="{{formatDate(.lastLog.when)}}">
 				<td><a href="/project/{{.id}}/">{{.name}}</a></td>
 				<td>{{.status}}</td>
 				<td>{{.stage}}</td>
@@ -149,7 +169,11 @@
 					<a href="/project/{{.id}}/{{.releaseVersion}}">{{.releaseVersion}}</a>
 				</td>
 				<td>
-						<a href="/release/{{.id}}?file">Download</a>	
+					{{#if releases[.id]}}
+						<a href="/release/{{.id}}?file">{{releases[id].fileName}}</a>	
+					{{else}}
+						No release file available
+					{{/if}}
 				</td>
 				<td>
 					<a href="/project/{{.id}}/{{.lastLog.version}}">{{.lastLog.version}}</a>
@@ -175,15 +199,15 @@
 	</thead>
 	<tbody>
 		{{#project.versions:i}}	
-			<tr>
+			<tr title="{{formatDate(.when)}}">
 				<td>
 					<a href="/project/{{project.id}}/{{.version}}">{{.version}}</a>
 				</td>
 				<td>{{.stage}}</td>
 				<td title="{{.log}}">{{#if .log}}{{.log.substring(0,100) + " ..."}}{{/if}}</td>
 				<td>
-					{{#if .stage == "released"}}
-						<a href="/release/{{project.id}}/{{.version}}?file">Download</a>	
+					{{#if releases[project.id + .version]}}
+						<a href="/release/{{project.id}}/{{.version}}?file">{{releases[project.id + .version].fileName}}</a>	
 					{{/if}}
 				</td>
 			</tr>
@@ -195,13 +219,41 @@
 {{/partial}}
 
 {{#partial version}}
+<hr>
+{{#if releases[project.id + .version]}}
+	<a href="/release/{{project.id}}/{{.version}}?file" class="pull-right pure-button pure-button-primary">Download Release</a>
+{{/if}}
 
+<div class="pure-menu pure-menu-horizontal">
+	<ul class="pure-menu-list">
+		<li class="pure-menu-item {{#if !currentStage}}pure-menu-selected{{/if}}">
+			<a href="/project/{{project.id}}/{{.version}}/" class="pure-menu-link">All</a>
+		</li>
+		{{#stages:i}}
+		<li class="pure-menu-item {{#if currentStage && currentStage == .stage}}pure-menu-selected{{/if}}">
+			<a href="/project/{{project.id}}/{{version}}/{{.stage}}" class="pure-menu-link">{{.stage}}</a>
+		</li>
+		{{/stages}}
+	</ul>
+</div>
+<hr>
+<div class="log">
+	{{#if currentStage}}
+		<h3>{{currentStage}}<small class="timestamp">{{formatDate(logs.when)}}</small></h3>
+		<pre><samp>
+			{{logs.log}}			
+		</samp></pre>
+	{{else}}
+		{{#stages:i}}
+			<h3>{{.stage}}<small class="timestamp">{{formatDate(.when)}}</small></h3>
+			<pre><samp>
+				{{.log}}
+			</samp></pre>
+		{{/stages}}
+	{{/if}}
+</div>
 {{/partial}}
 
-{{#partial stage}}
-
-{{/partial}}
-	
 </script>
 <script src="/js/ractive.min.js"></script>
 <script src="/js/index.js"></script>

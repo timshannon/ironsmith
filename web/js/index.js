@@ -15,10 +15,13 @@ Ractive.DEBUG = false;
             return {
                 project: null,
                 version: null,
-				stages: null,
-                stage: null,
+                stages: null,
+                currentStage: null,
+                logs: null,
                 projects: [],
                 error: null,
+                formatDate: formatDate,
+                releases: {},
             };
         },
     });
@@ -40,13 +43,13 @@ Ractive.DEBUG = false;
 
         if (paths[1] == "project") {
             if (paths[2]) {
-                getProject(paths[2]);
                 if (paths[3]) {
-                    getVersion(paths[2], paths[3]);
                     if (paths[4]) {
                         getStage(paths[2], paths[3], paths[4]);
                     }
+                    getVersion(paths[2], paths[3]);
                 }
+                getProject(paths[2]);
             }
             getProjects();
             return;
@@ -61,8 +64,8 @@ Ractive.DEBUG = false;
             function(result) {
                 for (var i = 0; i < result.data.length; i++) {
                     setStatus(result.data[i]);
+                    hasRelease(result.data[i].id, "");
                 }
-
                 r.set("projects", result.data);
             },
             function(result) {
@@ -74,6 +77,11 @@ Ractive.DEBUG = false;
         get("/log/" + id,
             function(result) {
                 r.set("project", result.data);
+                if (result.data.versions) {
+                    for (var i = 0; i < result.data.versions.length; i++) {
+                        hasRelease(result.data.id, result.data.versions[i].version);
+                    }
+                }
             },
             function(result) {
                 r.set("error", err(result).message);
@@ -81,9 +89,9 @@ Ractive.DEBUG = false;
     }
 
     function getVersion(id, version) {
-        r.set("version", version);
         get("/log/" + id + "/" + version,
             function(result) {
+                r.set("version", version);
                 r.set("stages", result.data);
             },
             function(result) {
@@ -94,11 +102,25 @@ Ractive.DEBUG = false;
     function getStage(id, version, stage) {
         get("/log/" + id + "/" + version + "/" + stage,
             function(result) {
-                r.set("stage", result.data);
+                r.set("logs", result.data);
+                r.set("currentStage", stage);
             },
             function(result) {
                 r.set("error", err(result).message);
             });
+    }
+
+    function hasRelease(id, version) {
+        /*/release/<project-id>/<version>*/
+        get("/release/" + id + "/" + version,
+            function(result) {
+                r.set("releases." + id + version, result.data);
+            },
+            function(result) {
+                r.set("releases." + id + version, undefined);
+            });
+
+
     }
 
     function setStatus(project) {
@@ -165,11 +187,23 @@ function get(url, success, error) {
 function err(response) {
     "use strict";
     var error = {
-        message: "An error occurred and has been logged",
+        message: "An error occurred",
     };
 
     if (typeof response === "string") {
         error.message = response;
+    } else {
+        error.message = JSON.parse(response.responseText).message;
     }
+
     return error;
+}
+
+function formatDate(strDate) {
+    "use strict";
+    var date = new Date(strDate);
+    if (!date) {
+        return "";
+    }
+    return date.toLocaleDateString() + " at " + date.toLocaleTimeString();
 }
