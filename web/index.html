@@ -152,7 +152,6 @@
 		<tr>
 			<th>Project</th>
 			<th>Status</th>
-			<th>Stage</th>
 			<th>Last Release</th>
 			<th>Last Release File</th>
 			<th>Last Version</th>
@@ -164,7 +163,6 @@
 			<tr title="{{formatDate(.lastLog.when)}}">
 				<td><a href="/project/{{.id}}/">{{.name}}</a></td>
 				<td>{{.status}}</td>
-				<td>{{.stage}}</td>
 				<td>
 					<a href="/project/{{.id}}/{{.releaseVersion}}">{{.releaseVersion}}</a>
 				</td>
@@ -178,7 +176,7 @@
 				<td>
 					<a href="/project/{{.id}}/{{.lastLog.version}}">{{.lastLog.version}}</a>
 				</td>
-				<td title="{{.lastLog.log}}">{{#if .lastLog.log}}{{.lastLog.log.substring(0,100) + " ..."}}{{/if}}</td>
+				<td title="{{.lastLog.log}}">{{#if .lastLog.log}}{{.lastLog.log.substring(0,100)}}{{/if}}</td>
 			</tr>
 		{{/projects}}
 	</tbody>
@@ -204,7 +202,7 @@
 					<a href="/project/{{project.id}}/{{.version}}">{{.version}}</a>
 				</td>
 				<td>{{.stage}}</td>
-				<td title="{{.log}}">{{#if .log}}{{.log.substring(0,100) + " ..."}}{{/if}}</td>
+				<td title="{{.log}}">{{#if .log}}{{.log.substring(0,100)}}{{/if}}</td>
 				<td>
 					{{#if releases[project.id + .version]}}
 						<a href="/release/{{project.id}}/{{.version}}?file">{{releases[project.id + .version].fileName}}</a>	
@@ -240,15 +238,11 @@
 <div class="log">
 	{{#if currentStage}}
 		<h3>{{currentStage}}<small class="timestamp">{{formatDate(logs.when)}}</small></h3>
-		<pre><samp>
-			{{logs.log}}			
-		</samp></pre>
+		<pre><samp>{{logs.log}}</samp></pre>
 	{{else}}
 		{{#stages:i}}
 			<h3>{{.stage}}<small class="timestamp">{{formatDate(.when)}}</small></h3>
-			<pre><samp>
-				{{.log}}
-			</samp></pre>
+			<pre><samp>{{.log}}</samp></pre>
 		{{/stages}}
 	{{/if}}
 </div>
