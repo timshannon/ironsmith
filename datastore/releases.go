@@ -5,7 +5,9 @@
 package datastore
 
 import (
+	"bytes"
 	"encoding/json"
+	"io"
 	"time"
 
 	"github.com/boltdb/bolt"
@@ -52,13 +54,27 @@ func (ds *Store) AddRelease(version, fileName string, fileData []byte) error {
 
 // ReleaseFile returns a specific file from a release for the given file key
 func (ds *Store) ReleaseFile(fileKey TimeKey) ([]byte, error) {
-	var fileData []byte
-	err := ds.get(bucketFiles, fileKey.Bytes(), fileData)
+	var fileData bytes.Buffer
+
+	err := ds.bolt.View(func(tx *bolt.Tx) error {
+		dsValue := tx.Bucket([]byte(bucketFiles)).Get(fileKey.Bytes())
+
+		if dsValue == nil {
+			return ErrNotFound
+		}
+
+		_, err := io.Copy(&fileData, bytes.NewReader(dsValue))
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+
 	if err != nil {
 		return nil, err
 	}
 
-	return fileData, nil
+	return fileData.Bytes(), nil
 }
 
 // Release gets the release record for a specific version

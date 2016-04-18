@@ -6,10 +6,8 @@
 package datastore
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
-	"io"
 	"time"
 
 	"github.com/boltdb/bolt"
@@ -75,15 +73,6 @@ func (ds *Store) get(bucket string, key []byte, result interface{}) error {
 
 		if dsValue == nil {
 			return ErrNotFound
-		}
-
-		if value, ok := result.([]byte); ok {
-			buff := bytes.NewBuffer(value)
-			_, err := io.Copy(buff, bytes.NewReader(dsValue))
-			if err != nil {
-				return err
-			}
-			return nil
 		}
 
 		return json.Unmarshal(dsValue, result)
