@@ -10,6 +10,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"git.townsourced.com/ironsmith/datastore"
 )
 
 // /path/<project-id>/<version>/<stage>
@@ -73,9 +75,21 @@ func logGet(w http.ResponseWriter, r *http.Request) {
 		if errHandled(err, w, r) {
 			return
 		}
+
+		prjData, err := project.webData()
+		if errHandled(err, w, r) {
+			return
+		}
+
 		respondJsend(w, &JSend{
 			Status: statusSuccess,
-			Data:   vers,
+			Data: struct {
+				*webProject
+				Versions []*datastore.Log `json:"versions"`
+			}{
+				webProject: prjData,
+				Versions:   vers,
+			},
 		})
 		return
 	}

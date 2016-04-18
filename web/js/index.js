@@ -3,6 +3,8 @@
 // that can be found in the LICENSE file.
 /* jshint  strict: true */
 
+Ractive.DEBUG = false;
+
 (function() {
     "use strict";
 
@@ -39,14 +41,11 @@
             if (paths[2]) {
                 getProject(paths[2]);
                 if (paths[3]) {
-                    r.set("version", paths[3]);
+                    getVersion(paths[2], paths[3]);
                     if (paths[4]) {
-                        r.set("stage", paths[4]);
-                        //get stage
+                    getStage(paths[2], paths[3], paths[4]);
                     }
-                    //get version
                 }
-
             }
             getProjects();
             return;
@@ -80,9 +79,29 @@
             });
     }
 
+    function getVersion(id, version) {
+        get("/log/" + id + "/" + version,
+            function(result) {
+                r.set("version", result.data);
+            },
+            function(result) {
+                r.set("error", err(result).message);
+            });
+    }
+
+    function getStage(id, version, stage) {
+        get("/log/" + id + "/" + version + "/" + stage,
+            function(result) {
+                r.set("stage", result.data);
+            },
+            function(result) {
+                r.set("error", err(result).message);
+            });
+    }
+
     function setStatus(project) {
         //statuses 
-        if (project.lastLog.version == project.releaseVersion) {
+        if (project.lastLog.version.trim() == project.releaseVersion.trim()) {
             project.status = "Success";
         } else {
             if (project.lastLog.stage == "loading") {

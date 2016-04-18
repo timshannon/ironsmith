@@ -25,12 +25,13 @@ const (
 
 //stages
 const (
-	stageLoad    = "loading"
-	stageFetch   = "fetching"
-	stageBuild   = "building"
-	stageTest    = "testing"
-	stageRelease = "releasing"
-	stageWait    = "waiting"
+	stageLoad     = "loading"
+	stageFetch    = "fetching"
+	stageBuild    = "building"
+	stageTest     = "testing"
+	stageRelease  = "releasing"
+	stageReleased = "released"
+	stageWait     = "waiting"
 )
 
 const projectFilePoll = 30 * time.Second

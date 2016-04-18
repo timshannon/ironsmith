@@ -57,28 +57,6 @@
 			margin: 10px;
 		}
 
-		/*stages*/
-
-		.stage-load {
-
-		}
-
-		.stage-fetch {
-
-		}
-
-		.stage-build {
-
-		}
-
-		.stage-test {
-
-		}
-
-		.stage-release {
-
-		}
-
 		/* breadcrumbs */
 
 		#breadcrumbs {
@@ -177,9 +155,37 @@
 {{/partial}}
 
 {{#partial project}}
+<div class="table-responsive">
+<table class="pure-table pure-table-striped">
+	<thead>
+		<tr>
+			<th>Version</th>
+			<th>Stage</th>
+			<th>Last Log</th>
+			<th>Release File</th>
+		</tr>
+	</thead>
+	<tbody>
+		{{#project.versions:i}}	
+			<tr>
+				<td>{{.version}}</td>
+				<td>{{.stage}}</td>
+				<td title="{{.log}}">{{#if .log}}{{.log.substring(0,100) + " ..."}}{{/if}}</td>
+				<td>
+					{{#if .stage == "released"}}
+						<a href="/release/{{project.id}}/{{.version}}?file">Download</a>	
+					{{/if}}
+				</td>
+			</tr>
+		{{/versions}}
+	</tbody>
+</table>
+</div>
+
 {{/partial}}
 
 {{#partial version}}
+
 {{/partial}}
 
 {{#partial stage}}

@@ -7,6 +7,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -216,6 +217,13 @@ func (p *Project) release() {
 	}
 
 	if p.errHandled(p.ds.AddRelease(p.version, p.ReleaseFile, buff)) {
+		return
+	}
+
+	p.setStage(stageReleased)
+
+	if p.errHandled(p.ds.AddLog(p.version, p.stage,
+		fmt.Sprintf("Project: %s Version %s built, tested, and released successfully.\n", p.id(), p.version))) {
 		return
 	}
 
