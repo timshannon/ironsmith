@@ -223,12 +223,12 @@ func (p *Project) release() {
 	p.setStage(stageReleased)
 
 	if p.errHandled(p.ds.AddLog(p.version, p.stage,
-		fmt.Sprintf("Project: %s Version %s built, tested, and released successfully.\n", p.id(), p.version))) {
+		fmt.Sprintf("Project %s Version %s built, tested, and released successfully.\n", p.id(), p.version))) {
 		return
 	}
 
 	//build successfull, remove working dir
 	p.errHandled(os.RemoveAll(p.workingDir()))
 
-	vlog("Project: %s Version %s built, tested, and released successfully.\n", p.id(), p.version)
+	vlog("Project %s Version %s built, tested, and released successfully.\n", p.id(), p.version)
 }

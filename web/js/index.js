@@ -15,6 +15,7 @@ Ractive.DEBUG = false;
             return {
                 project: null,
                 version: null,
+				stages: null,
                 stage: null,
                 projects: [],
                 error: null,
@@ -43,7 +44,7 @@ Ractive.DEBUG = false;
                 if (paths[3]) {
                     getVersion(paths[2], paths[3]);
                     if (paths[4]) {
-                    getStage(paths[2], paths[3], paths[4]);
+                        getStage(paths[2], paths[3], paths[4]);
                     }
                 }
             }
@@ -80,9 +81,10 @@ Ractive.DEBUG = false;
     }
 
     function getVersion(id, version) {
+        r.set("version", version);
         get("/log/" + id + "/" + version,
             function(result) {
-                r.set("version", result.data);
+                r.set("stages", result.data);
             },
             function(result) {
                 r.set("error", err(result).message);

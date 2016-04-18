@@ -134,6 +134,7 @@
 			<th>Status</th>
 			<th>Stage</th>
 			<th>Last Release</th>
+			<th>Last Release File</th>
 			<th>Last Version</th>
 			<th>Last Log</th>
 		</tr>
@@ -144,8 +145,15 @@
 				<td><a href="/project/{{.id}}/">{{.name}}</a></td>
 				<td>{{.status}}</td>
 				<td>{{.stage}}</td>
-				<td>{{.releaseVersion}}</td>
-				<td>{{.lastLog.version}}</td>
+				<td>
+					<a href="/project/{{.id}}/{{.releaseVersion}}">{{.releaseVersion}}</a>
+				</td>
+				<td>
+						<a href="/release/{{.id}}?file">Download</a>	
+				</td>
+				<td>
+					<a href="/project/{{.id}}/{{.lastLog.version}}">{{.lastLog.version}}</a>
+				</td>
 				<td title="{{.lastLog.log}}">{{#if .lastLog.log}}{{.lastLog.log.substring(0,100) + " ..."}}{{/if}}</td>
 			</tr>
 		{{/projects}}
@@ -168,7 +176,9 @@
 	<tbody>
 		{{#project.versions:i}}	
 			<tr>
-				<td>{{.version}}</td>
+				<td>
+					<a href="/project/{{project.id}}/{{.version}}">{{.version}}</a>
+				</td>
 				<td>{{.stage}}</td>
 				<td title="{{.log}}">{{#if .log}}{{.log.substring(0,100) + " ..."}}{{/if}}</td>
 				<td>

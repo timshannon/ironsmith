@@ -86,7 +86,6 @@ func (ds *Store) Versions() ([]*Log, error) {
 
 			// capture the newest entry for each version
 			if l.Version != current {
-				l.Log = "" // only care about date, ver and stage
 				vers = append(vers, l)
 				current = l.Version
 			}
