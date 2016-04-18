@@ -240,6 +240,11 @@ func triggerPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if strings.TrimSpace(project.TriggerSecret) == "" {
+		four04(w, r)
+		return
+	}
+
 	input := &triggerInput{}
 	if errHandled(parseInput(r, input), w, r) {
 		return

@@ -112,9 +112,20 @@
 					<li class="pure-menu-item">
 						<span class="breadcrumb-separator">/</span>
 					</li>
-					<li class="pure-menu-item">
-						<a href="/project/{{project.id}}" class="pure-menu-link">{{project.name}}</a>
-					</li>
+					{{#if !version && !currentStage}}
+						<li class="pure-menu-item pure-menu-has-children" decorator="menu">
+							<a href="#" id="projectMenu" class="pure-menu-link">{{project.name}}</a>
+							<ul class="pure-menu-children">
+								<li class="pure-menu-item">
+									<a href="#" class="pure-menu-link" on-click="triggerBuild">Trigger Build</a>
+								</li>
+							</ul>
+						</li>
+					{{else}}
+						<li class="pure-menu-item">
+							<a href="/project/{{project.id}}" class="pure-menu-link">{{project.name}}</a>
+						</li>
+					{{/if}}
 				{{/if}}
 				{{#if project && version}}
 					<li class="pure-menu-item">
