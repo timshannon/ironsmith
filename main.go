@@ -11,7 +11,7 @@ import (
 	"os/signal"
 	"path/filepath"
 
-	"git.townsourced.com/config"
+	"git.townsourced.com/townsourced/config"
 )
 
 //settings
