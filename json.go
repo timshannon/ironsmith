@@ -6,7 +6,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -84,8 +83,6 @@ func parseInput(r *http.Request, result interface{}) error {
 	if err != nil {
 		return err
 	}
-
-	fmt.Printf("JSON Input: %s\n", buff)
 
 	if lr.N == 0 {
 		return errInputTooLarge
