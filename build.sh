@@ -1,4 +1,9 @@
 #!/bin/bash
-git clone https://git.townsourced.com/tshannon/config.git ./workspace/src
 
-go-bindata web/... && go build -a -v -o ironsmith -pkgdir ./workspace
+dir=$1
+
+export GOPATH=$dir 
+
+go get -u https://git.townsourced.com/townsourced/ironsmith
+
+go-bindata web/... && go build -a -v -o ironsmith

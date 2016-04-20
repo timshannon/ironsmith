@@ -11,7 +11,7 @@ import (
 )
 
 func runCmd(cmd, dir string) ([]byte, error) {
-	s := strings.Fields(cmd)
+	s := strings.Fields(strings.Replace(cmd, "@dir", dir, -1))
 
 	var args []string
 

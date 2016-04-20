@@ -19,6 +19,11 @@ You'll setup a project which will need the following information:
 
 Projects will be defined in a project.json file for now.  I may add a web interface later.
 
+@dir in any of the script strings will be replaced with an absolute path to the current working directory of the specific version being worked on.
+```
+sh ./build.sh @dir
+```
+
 
 Ironsmith will take the information for the defined project above and do the following
 
@@ -26,7 +31,8 @@ Ironsmith will take the information for the defined project above and do the fol
 2. Change to that directory
 2. Create a bolt DB file for the project to keep a log of all the builds
 3. Run an initial pull of the repository using the pull script
-4. If pull succeeds, Run the Build Scripts
+4. Run version script
+4. If pull is a new version, then Run the Build Scripts
 5. If build succeeds, run the test scripts
 6. If test succeeds, run the release scripts
 7. Load the release file into project release folder with the release name
