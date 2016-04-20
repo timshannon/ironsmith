@@ -94,13 +94,13 @@ func (p *Project) fetch() {
 	}
 
 	//fetch project
-	fetchResult, err := runCmd(p.Fetch, tempDir)
+	fetchResult, err := runCmd(p.Fetch, tempDir, p.Environment)
 	if p.errHandled(err) {
 		return
 	}
 
 	// fetched succesfully, determine version
-	version, err := runCmd(p.Version, tempDir)
+	version, err := runCmd(p.Version, tempDir, p.Environment)
 
 	if p.errHandled(err) {
 		return
@@ -152,7 +152,7 @@ func (p *Project) build() {
 		return
 	}
 
-	output, err := runCmd(p.Build, p.workingDir())
+	output, err := runCmd(p.Build, p.workingDir(), p.Environment)
 
 	if p.errHandled(err) {
 		return
@@ -173,7 +173,7 @@ func (p *Project) test() {
 	if p.Test == "" {
 		return
 	}
-	output, err := runCmd(p.Test, p.workingDir())
+	output, err := runCmd(p.Test, p.workingDir(), p.Environment)
 
 	if p.errHandled(err) {
 		return
@@ -195,7 +195,7 @@ func (p *Project) release() {
 		return
 	}
 
-	output, err := runCmd(p.Release, p.workingDir())
+	output, err := runCmd(p.Release, p.workingDir(), p.Environment)
 
 	if p.errHandled(err) {
 		return
