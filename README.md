@@ -17,9 +17,17 @@ You'll setup a project which will need the following information:
 5. Path to the release file
 6. Script to set release name / version
 
+An optional set of environment strings can be set to define the environment in which the scripts run.
+```
+"environment": [
+"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/go/bin",
+"GOPATH=@dir"
+]
+```
+
 Projects will be defined in a project.json file for now.  I may add a web interface later.
 
-@dir in any of the script strings will be replaced with an absolute path to the current working directory of the specific version being worked on.
+@dir in any of the script strings or environment entries will be replaced with an absolute path to the current working directory of the specific version being worked on.
 ```
 sh ./build.sh @dir
 ```
