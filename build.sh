@@ -6,6 +6,6 @@ export GOPATH=$dir
 
 echo working dir: $dir
 
-go get -u https://git.townsourced.com/townsourced/ironsmith
+go get -u git.townsourced.com/townsourced/ironsmith
 
 go-bindata web/... && go build -a -v -o ironsmith
