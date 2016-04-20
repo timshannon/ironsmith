@@ -275,6 +275,7 @@ func (p *Project) setData(new *Project) {
 	defer p.Unlock()
 
 	p.Name = new.Name
+	p.Environment = new.Environment
 
 	p.Fetch = new.Fetch
 	p.Build = new.Build
