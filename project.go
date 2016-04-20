@@ -48,6 +48,8 @@ The project lifecycle goes like this, each step calling the next if successful
 type Project struct {
 	Name string `json:"name"` // name of the project
 
+	Environment []string `json:"environment"` // Environment for each of the scripts below, if empty will use the current processes environment
+
 	Fetch   string `json:"fetch"`   //Script to fetch the latest project code into the current directory
 	Build   string `json:"build"`   //Script to build the latest project code
 	Test    string `json:"test"`    //Script to test the latest project code

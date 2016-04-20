@@ -10,8 +10,12 @@ import (
 	"strings"
 )
 
-func runCmd(cmd, dir string) ([]byte, error) {
+func runCmd(cmd, dir string, env []string) ([]byte, error) {
 	s := strings.Fields(strings.Replace(cmd, "@dir", dir, -1))
+
+	for i := range env {
+		env[i] = strings.Replace(env[i], "@dir", dir, -1)
+	}
 
 	var args []string
 
@@ -22,6 +26,7 @@ func runCmd(cmd, dir string) ([]byte, error) {
 	ec := exec.Command(s[0], args...)
 
 	ec.Dir = dir
+	ec.Env = env
 
 	vlog("Executing command: %s in dir %s\n", cmd, dir)
 
