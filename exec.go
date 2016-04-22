@@ -32,7 +32,7 @@ func runCmd(cmd, dir string, env []string) ([]byte, error) {
 
 	result, err := ec.CombinedOutput()
 	if err != nil {
-		return nil, fmt.Errorf("%s", result)
+		return nil, fmt.Errorf("%s\n%s", err, result)
 	}
 	return result, nil
 }
