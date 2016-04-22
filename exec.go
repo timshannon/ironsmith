@@ -6,7 +6,9 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -23,10 +25,21 @@ func runCmd(cmd, dir string, env []string) ([]byte, error) {
 		args = s[1:]
 	}
 
-	ec := exec.Command(s[0], args...)
+	name := s[0]
+	ec := &exec.Cmd{
+		Path: name,
+		Args: append([]string{name}, args...),
+		Dir:  dir,
+		Env:  env,
+	}
 
-	ec.Dir = dir
-	ec.Env = env
+	if filepath.Base(name) == name {
+		lp, err := lookPath(name, env)
+		if err != nil {
+			return nil, err
+		}
+		ec.Path = lp
+	}
 
 	vlog("Executing command: %s in dir %s\n", cmd, dir)
 
@@ -35,4 +48,51 @@ func runCmd(cmd, dir string, env []string) ([]byte, error) {
 		return nil, fmt.Errorf("%s\n%s", err, result)
 	}
 	return result, nil
+}
+
+// similar to os/exec.LookPath, except it checks if the passed in
+// custom environment includes a path definitions and uses that path instead
+// note this probably only works on unix, that's all I care about for now
+func lookPath(file string, env []string) (string, error) {
+	if strings.Contains(file, "/") {
+		err := findExecutable(file)
+		if err == nil {
+			return file, nil
+		}
+		return "", &exec.Error{file, err}
+	}
+
+	for i := range env {
+		if strings.HasPrefix(env[i], "PATH=") {
+			pathenv := env[i][5:]
+			if pathenv == "" {
+				return "", &exec.Error{file, exec.ErrNotFound}
+			}
+			for _, dir := range strings.Split(pathenv, ":") {
+				if dir == "" {
+					// Unix shell semantics: path element "" means "."
+					dir = "."
+				}
+				path := dir + "/" + file
+				if err := findExecutable(path); err == nil {
+					return path, nil
+				}
+			}
+			return "", &exec.Error{file, exec.ErrNotFound}
+		}
+	}
+
+	return exec.LookPath(file)
+}
+
+func findExecutable(file string) error {
+	d, err := os.Stat(file)
+	if err != nil {
+		return err
+	}
+	if m := d.Mode(); !m.IsDir() && m&0111 != 0 {
+		return nil
+	}
+
+	return os.ErrPermission
 }
