@@ -177,7 +177,7 @@
 				<td>
 					<a href="/project/{{.id}}/{{.lastLog.version}}">{{.lastLog.version}}</a>
 				</td>
-				<td title="{{.lastLog.log}}">{{#if .lastLog.log}}{{.lastLog.log.substring(0,100)}}{{/if}}</td>
+				<td title="{{.lastLog.log}}">{{#if .lastLog.log && .lastLog.length > 200}}{{.lastLog.log.substring(0,200)}}...{{else}}{{.lastLog.log}}{{/if}}</td>
 				<td>
 					<a href="/project/{{.id}}/{{.releaseVersion}}">{{.releaseVersion}}</a>
 				</td>
@@ -213,7 +213,7 @@
 					<a href="/project/{{project.id}}/{{.version}}">{{.version}}</a>
 				</td>
 				<td>{{.stage}}</td>
-				<td title="{{.log}}">{{#if .log}}{{.log.substring(0,100)}}{{/if}}</td>
+				<td title="{{.log}}">{{#if .log && .log.length > 200}}{{.log.substring(0,200)}}...{{else}}{{.log}}{{/if}}</td>
 				<td>
 					{{#if releases[project.id + .version]}}
 						<a href="/release/{{project.id}}/{{.version}}?file">{{releases[project.id + .version].fileName}}</a>	
