@@ -121,7 +121,7 @@ func (ds *Store) LastRelease() (*Release, error) {
 	err := ds.bolt.View(func(tx *bolt.Tx) error {
 		c := tx.Bucket([]byte(bucketReleases)).Cursor()
 
-		_, v := c.Last()
+		_, v := c.First() // this is confusing
 		if v == nil {
 			return ErrNotFound
 		}
