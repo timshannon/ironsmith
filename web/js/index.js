@@ -135,7 +135,11 @@ Ractive.DEBUG = false;
     function getVersion(id, version) {
         get("/log/" + id + "/" + version,
             function(result) {
-                r.set("version", version);
+                if (!result.data || !result.data.length || !result.data[0].version) {
+                    r.set("version", version);
+                } else {
+                    r.set("version", result.data[0].version);
+                }
                 r.set("stages", result.data);
             },
             function(result) {
@@ -171,8 +175,8 @@ Ractive.DEBUG = false;
         //statuses 
         if (project.stage != "waiting") {
             project.status = project.stage;
-		} else if(!project.lastLog || !project.lastLog.version) {
-			project.status = "waiting";
+        } else if (!project.lastLog || !project.lastLog.version) {
+            project.status = "waiting";
         } else if (project.lastLog.version.trim() == project.releaseVersion.trim()) {
             project.status = "Successfully Released";
         } else {
