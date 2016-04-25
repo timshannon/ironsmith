@@ -32,7 +32,7 @@ func (p *Project) load() {
 	defer p.processing.Unlock()
 
 	p.setStage(stageLoad)
-	p.setVersion("")
+	p.setVersion("Version not yet set")
 
 	if p.filename == "" {
 		p.errHandled(errors.New("Invalid project file name"))
