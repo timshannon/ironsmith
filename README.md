@@ -14,7 +14,7 @@ You'll setup a project which will need the following information:
 2. Script to build the repository
 3. Script to test the repository
 4. Script to build the release file
-5. Path to the release file
+5. Path to the release file / can also be a script that returns a file name
 6. Script to set release name / version
 
 An optional set of environment strings can be set to define the environment in which the scripts run.
