@@ -68,6 +68,7 @@ type Project struct {
 	status   string
 	version  string
 	hash     string
+	start    time.Time // the last start time of the latest cycle
 
 	sync.RWMutex
 	processing sync.Mutex

@@ -33,6 +33,7 @@ func (p *Project) load() {
 
 	p.setStage(stageLoad)
 	p.setVersion("Version not yet set")
+	p.start = time.Time{}
 
 	if p.filename == "" {
 		p.errHandled(errors.New("Invalid project file name"))
@@ -82,6 +83,7 @@ func (p *Project) load() {
 // fetched code, if there is then the temp dir is renamed to the version name
 func (p *Project) fetch() {
 	p.setStage(stageFetch)
+	p.start = time.Now()
 
 	if p.Fetch == "" {
 		return
@@ -216,14 +218,15 @@ func (p *Project) release() {
 		return
 	}
 
-	if p.errHandled(p.ds.AddRelease(p.version, p.ReleaseFile, buff)) {
+	if p.errHandled(p.ds.AddRelease(p.version, filepath.Base(p.ReleaseFile), buff)) {
 		return
 	}
 
 	p.setStage(stageReleased)
 
 	if p.errHandled(p.ds.AddLog(p.version, p.stage,
-		fmt.Sprintf("Project %s Version %s built, tested, and released successfully.\n", p.id(), p.version))) {
+		fmt.Sprintf("Project %s Version %s built, tested, and released successfully and took %s.\n", p.id(), p.version,
+			time.Now().Sub(p.start)))) {
 		return
 	}
 
