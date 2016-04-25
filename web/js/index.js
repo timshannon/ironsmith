@@ -171,6 +171,8 @@ Ractive.DEBUG = false;
         //statuses 
         if (project.stage != "waiting") {
             project.status = project.stage;
+		} else if(!project.lastLog) {
+			project.status = "waiting";
         } else if (project.lastLog.version.trim() == project.releaseVersion.trim()) {
             project.status = "Successfully Released";
         } else {
