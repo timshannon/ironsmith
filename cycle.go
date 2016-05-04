@@ -110,18 +110,20 @@ func (p *Project) fetch() {
 
 	p.setVersion(strings.TrimSpace(string(version)))
 
-	// check if this specific version has attempted a build yet
-	lVer, err := p.ds.LastVersion(stageBuild)
-	if err != datastore.ErrNotFound && p.errHandled(err) {
-		return
-	}
+	if p.poll > 0 {
+		// if polling, check if this specific version has attempted a build yet
+		lVer, err := p.ds.LastVersion(stageBuild)
+		if err != datastore.ErrNotFound && p.errHandled(err) {
+			return
+		}
 
-	if p.version == "" || p.version == lVer.Version {
-		// no new build clean up temp dir
-		p.errHandled(os.RemoveAll(tempDir))
+		if p.version == "" || p.version == lVer.Version {
+			// no new build clean up temp dir
+			p.errHandled(os.RemoveAll(tempDir))
 
-		vlog("No new version found for Project: %s Version: %s.\n", p.id(), p.version)
-		return
+			vlog("No new version found for Project: %s Version: %s.\n", p.id(), p.version)
+			return
+		}
 	}
 
 	//remove any existing data that matches version hash
