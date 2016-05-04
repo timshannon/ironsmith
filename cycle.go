@@ -69,6 +69,7 @@ func (p *Project) load() {
 	p.setStage(stageWait)
 
 	//full cycle completed
+	p.errHandled(p.ds.TrimVersions(p.MaxVersions))
 
 	if p.poll > 0 {
 		//start polling

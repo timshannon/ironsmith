@@ -28,13 +28,13 @@ const (
 
 // AddRelease adds a new Release
 func (ds *Store) AddRelease(version, fileName string, fileData []byte) error {
-	fileKey := NewTimeKey()
+	key := NewTimeKey()
 
 	r := &Release{
-		When:     fileKey.Time(),
+		When:     key.Time(),
 		Version:  version,
 		FileName: fileName,
-		FileKey:  fileKey,
+		FileKey:  key,
 	}
 
 	dsValue, err := json.Marshal(r)
@@ -43,12 +43,12 @@ func (ds *Store) AddRelease(version, fileName string, fileData []byte) error {
 	}
 
 	return ds.bolt.Update(func(tx *bolt.Tx) error {
-		err = tx.Bucket([]byte(bucketReleases)).Put([]byte(version), dsValue)
+		err = tx.Bucket([]byte(bucketReleases)).Put(key.Bytes(), dsValue)
 		if err != nil {
 			return err
 		}
 
-		return tx.Bucket([]byte(bucketFiles)).Put(fileKey.Bytes(), fileData)
+		return tx.Bucket([]byte(bucketFiles)).Put(key.Bytes(), fileData)
 	})
 }
 
@@ -80,10 +80,27 @@ func (ds *Store) ReleaseFile(fileKey TimeKey) ([]byte, error) {
 // Release gets the release record for a specific version
 func (ds *Store) Release(version string) (*Release, error) {
 	r := &Release{}
-	err := ds.get(bucketReleases, []byte(version), r)
+	err := ds.bolt.View(func(tx *bolt.Tx) error {
+		c := tx.Bucket([]byte(bucketReleases)).Cursor()
+
+		for k, v := c.Last(); k != nil; k, v = c.Prev() {
+			err := json.Unmarshal(v, r)
+			if err != nil {
+				return err
+			}
+
+			if r.Version == version {
+				return nil
+			}
+		}
+
+		return ErrNotFound
+	})
+
 	if err != nil {
 		return nil, err
 	}
+
 	return r, nil
 }
 
@@ -119,9 +136,8 @@ func (ds *Store) LastRelease() (*Release, error) {
 	r := &Release{}
 
 	err := ds.bolt.View(func(tx *bolt.Tx) error {
-		c := tx.Bucket([]byte(bucketReleases)).Cursor()
+		_, v := tx.Bucket([]byte(bucketReleases)).Cursor().Last()
 
-		_, v := c.First() // this is confusing
 		if v == nil {
 			return ErrNotFound
 		}
