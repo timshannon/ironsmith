@@ -60,6 +60,7 @@ type Project struct {
 	ReleaseFile   string `json:"releaseFile"`
 	PollInterval  string `json:"pollInterval,omitempty"`  // if not poll interval is specified, this project is trigger only
 	TriggerSecret string `json:"triggerSecret,omitempty"` //secret to be included with a trigger call
+	MaxSizeInMB   string `json:"maxSizeInMB,omitempty"`   // Max size of the project datastore in MB
 
 	filename string
 	poll     time.Duration
