@@ -67,6 +67,83 @@ func (ds *Store) Close() error {
 	return ds.bolt.Close()
 }
 
+// TrimVersions Removes versions from the datastore file until it reaches the maxVersions count
+func (ds *Store) TrimVersions(maxVersions int) error {
+	if maxVersions <= 0 {
+		// no max set
+		return nil
+	}
+
+	versions, err := ds.Versions()
+	if err != nil {
+		return err
+	}
+
+	if len(versions) <= maxVersions {
+		return nil
+	}
+
+	remove := versions[maxVersions:]
+
+	for i := range remove {
+		err = ds.deleteVersion(remove[i].Version)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// removes the earliest instance of a specific version
+func (ds *Store) deleteVersion(version string) error {
+	return ds.bolt.Update(func(tx *bolt.Tx) error {
+		// remove all logs for this version
+		c := tx.Bucket([]byte(bucketLog)).Cursor()
+
+		for k, v := c.First(); k != nil; k, v = c.Next() {
+			lg := &Log{}
+
+			err := json.Unmarshal(v, lg)
+			if err != nil {
+				return err
+			}
+
+			if lg.Version != version {
+				break
+			}
+
+			err = c.Delete()
+			if err != nil {
+				return err
+			}
+		}
+
+		// remove all releases for this version
+		release, err := ds.Release(version)
+		if err == ErrNotFound {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+
+		err = tx.Bucket([]byte(bucketReleases)).Delete(release.FileKey.Bytes())
+		if err != nil {
+			return err
+		}
+
+		// remove release file for this version
+		err = tx.Bucket([]byte(bucketFiles)).Delete(release.FileKey.Bytes())
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+}
+
 func (ds *Store) get(bucket string, key []byte, result interface{}) error {
 	return ds.bolt.View(func(tx *bolt.Tx) error {
 		dsValue := tx.Bucket([]byte(bucket)).Get(key)
@@ -91,11 +168,5 @@ func (ds *Store) put(bucket string, key []byte, value interface{}) error {
 
 	return ds.bolt.Update(func(tx *bolt.Tx) error {
 		return tx.Bucket([]byte(bucket)).Put(key, dsValue)
-	})
-}
-
-func (ds *Store) delete(bucket string, key []byte) error {
-	return ds.bolt.Update(func(tx *bolt.Tx) error {
-		return tx.Bucket([]byte(bucket)).Delete(key)
 	})
 }

@@ -60,7 +60,7 @@ type Project struct {
 	ReleaseFile   string `json:"releaseFile"`
 	PollInterval  string `json:"pollInterval,omitempty"`  // if not poll interval is specified, this project is trigger only
 	TriggerSecret string `json:"triggerSecret,omitempty"` //secret to be included with a trigger call
-	MaxSizeInMB   string `json:"maxSizeInMB,omitempty"`   // Max size of the project datastore in MB
+	MaxVersions   int    `json:"maxVersions,omitempty"`   // Max number of versions to keep in the project datastore
 
 	filename string
 	poll     time.Duration
@@ -288,6 +288,7 @@ func (p *Project) setData(new *Project) {
 	p.ReleaseFile = new.ReleaseFile
 	p.PollInterval = new.PollInterval
 	p.TriggerSecret = new.TriggerSecret
+	p.MaxVersions = new.MaxVersions
 
 	if p.PollInterval != "" {
 		var err error
@@ -325,6 +326,8 @@ var projectTemplate = &Project{
 
 	ReleaseFile:  "release.tar.gz",
 	PollInterval: "15m",
+
+	MaxVersions: 100,
 }
 
 func prepTemplateProject() error {

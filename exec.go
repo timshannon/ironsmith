@@ -59,14 +59,14 @@ func lookPath(file string, env []string) (string, error) {
 		if err == nil {
 			return file, nil
 		}
-		return "", &exec.Error{file, err}
+		return "", &exec.Error{Name: file, Err: err}
 	}
 
 	for i := range env {
 		if strings.HasPrefix(env[i], "PATH=") {
 			pathenv := env[i][5:]
 			if pathenv == "" {
-				return "", &exec.Error{file, exec.ErrNotFound}
+				return "", &exec.Error{Name: file, Err: exec.ErrNotFound}
 			}
 			for _, dir := range strings.Split(pathenv, ":") {
 				if dir == "" {
@@ -78,7 +78,7 @@ func lookPath(file string, env []string) (string, error) {
 					return path, nil
 				}
 			}
-			return "", &exec.Error{file, exec.ErrNotFound}
+			return "", &exec.Error{Name: file, Err: exec.ErrNotFound}
 		}
 	}
 
