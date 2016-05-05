@@ -27,7 +27,7 @@ Project life cycle:
 
 // load is the beginning of the cycle.  Loads / reloads the project file to make sure that the scripts are up-to-date
 // call's fetch and triggers the next poll if one exists
-func (p *Project) load() {
+func (p *Project) load(forceBuild bool) {
 	p.processing.Lock() // ensure only one cycle is running at a time per project
 	defer p.processing.Unlock()
 
@@ -64,7 +64,7 @@ func (p *Project) load() {
 
 	p.setData(new)
 
-	p.fetch()
+	p.fetch(forceBuild)
 
 	p.setStage(stageWait)
 
@@ -73,16 +73,16 @@ func (p *Project) load() {
 
 	if p.poll > 0 {
 		//start polling
-		go func() {
-			time.AfterFunc(p.poll, p.load)
-		}()
+		time.AfterFunc(p.poll, func() {
+			p.load(false)
+		})
 	}
 }
 
 // fetch first runs the fetch script into a temporary directory
 // then it runs the version script in the temp directory to see if there is a newer version of the
 // fetched code, if there is then the temp dir is renamed to the version name
-func (p *Project) fetch() {
+func (p *Project) fetch(forceBuild bool) {
 	p.setStage(stageFetch)
 	p.start = time.Now()
 
@@ -111,8 +111,8 @@ func (p *Project) fetch() {
 
 	p.setVersion(strings.TrimSpace(string(version)))
 
-	if p.poll > 0 {
-		// if polling, check if this specific version has attempted a build yet
+	if !forceBuild {
+		// if not forced build, then check if this specific version has attempted a build yet
 		lVer, err := p.ds.LastVersion(stageBuild)
 		if err != datastore.ErrNotFound && p.errHandled(err) {
 			return

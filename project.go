@@ -427,7 +427,7 @@ func (p *projectList) add(name string) {
 			log.Printf("Error opening datastore for Project: %s Error: %s\n", prj.id(), err)
 			return
 		}
-		prj.load()
+		prj.load(false)
 	}()
 }
 
