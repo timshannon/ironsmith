@@ -259,6 +259,6 @@ func triggerPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	go func() {
-		project.load()
+		project.load(true)
 	}()
 }
