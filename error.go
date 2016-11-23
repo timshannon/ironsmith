@@ -11,7 +11,7 @@ import (
 	"log"
 	"net/http"
 
-	"git.townsourced.com/townsourced/ironsmith/datastore"
+	"github.com/timshannon/ironsmith/datastore"
 )
 
 const (
