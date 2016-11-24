@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"git.townsourced.com/townsourced/ironsmith/datastore"
+	"github.com/timshannon/ironsmith/datastore"
 )
 
 /*
