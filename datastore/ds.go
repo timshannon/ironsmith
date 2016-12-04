@@ -7,56 +7,29 @@ package datastore
 
 import (
 	"encoding/json"
-	"errors"
 	"time"
 
 	"github.com/boltdb/bolt"
+	"github.com/timshannon/bolthold"
 )
-
-//TODO: Move this all over to GobStore if I ever get around to finishing it
-
-// ErrNotFound is the error returned when a value cannot be found in the store for the given key
-var ErrNotFound = errors.New("Value not found in datastore")
 
 // Store is a datastore for getting and setting data for a given ironsmith project
 // run on top of a Bolt DB file
 type Store struct {
-	bolt *bolt.DB
+	store *bolthold.Store
 }
 
 // Open opens an existing datastore file, or creates a new one
 // caller is responsible for closing the datastore
 func Open(filename string) (*Store, error) {
-	db, err := bolt.Open(filename, 0666, &bolt.Options{Timeout: 1 * time.Minute})
+	db, err := bolthold.Open(filename, 0666, &bolthold.Options{Options: &bolt.Options{Timeout: 1 * time.Minute}})
 
 	if err != nil {
 		return nil, err
 	}
 
 	store := &Store{
-		bolt: db,
-	}
-
-	err = store.bolt.Update(func(tx *bolt.Tx) error {
-		_, err := tx.CreateBucketIfNotExists([]byte(bucketLog))
-		if err != nil {
-			return err
-		}
-		_, err = tx.CreateBucketIfNotExists([]byte(bucketReleases))
-		if err != nil {
-			return err
-		}
-
-		_, err = tx.CreateBucketIfNotExists([]byte(bucketFiles))
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		return nil, err
+		store: db,
 	}
 
 	return store, nil
@@ -64,7 +37,7 @@ func Open(filename string) (*Store, error) {
 
 // Close closes the bolt datastore
 func (ds *Store) Close() error {
-	return ds.bolt.Close()
+	return ds.store.Close()
 }
 
 // TrimVersions Removes versions from the datastore file until it reaches the maxVersions count
@@ -142,31 +115,4 @@ func (ds *Store) deleteVersion(version string) error {
 		return nil
 	})
 
-}
-
-func (ds *Store) get(bucket string, key []byte, result interface{}) error {
-	return ds.bolt.View(func(tx *bolt.Tx) error {
-		dsValue := tx.Bucket([]byte(bucket)).Get(key)
-
-		if dsValue == nil {
-			return ErrNotFound
-		}
-
-		return json.Unmarshal(dsValue, result)
-	})
-}
-
-func (ds *Store) put(bucket string, key []byte, value interface{}) error {
-	var err error
-	dsValue, ok := value.([]byte)
-	if !ok {
-		dsValue, err = json.Marshal(value)
-		if err != nil {
-			return err
-		}
-	}
-
-	return ds.bolt.Update(func(tx *bolt.Tx) error {
-		return tx.Bucket([]byte(bucket)).Put(key, dsValue)
-	})
 }
